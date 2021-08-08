@@ -72,8 +72,6 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 #define LED_PIN 0     // MCP23XXX pin LED is attached to
 Adafruit_MCP23X17 mcp;
 
-uint32_t delayMS;
-
 const char *ssid     = "WIFI-3532";
 const char *password = "12345678";
 
@@ -155,19 +153,9 @@ void setup(){
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
+  } else {
+    display.clearDisplay();
   }
-
-  display.clearDisplay();
-
-  // while(WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print( "." );
-  // }
-  // Print local IP address and start web server
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 
   // Set offset time in seconds to adjust for your timezone, for example:
   // GMT +1 = 3600
@@ -180,33 +168,11 @@ void setup(){
   
   // Initialize device.
   dht.begin();
-
-  Serial.println(F("DHTxx Unified Sensor Example"));
-  // Print temperature sensor details.
   sensor_t sensor;
-  dht.temperature().getSensor(&sensor);
-  Serial.println(F("------------------------------------"));
-  Serial.println(F("Temperature Sensor"));
-  Serial.print  (F("Sensor Type: ")); Serial.println(sensor.name);
-  Serial.print  (F("Driver Ver:  ")); Serial.println(sensor.version);
-  Serial.print  (F("Unique ID:   ")); Serial.println(sensor.sensor_id);
-  Serial.print  (F("Max Value:   ")); Serial.print(sensor.max_value); Serial.println(F("°C"));
-  Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("°C"));
-  Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("°C"));
-  Serial.println(F("------------------------------------"));
-  // Print humidity sensor details.
-  dht.humidity().getSensor(&sensor);
-  Serial.println(F("Humidity Sensor"));
-  Serial.print  (F("Sensor Type: ")); Serial.println(sensor.name);
-  Serial.print  (F("Driver Ver:  ")); Serial.println(sensor.version);
-  Serial.print  (F("Unique ID:   ")); Serial.println(sensor.sensor_id);
-  Serial.print  (F("Max Value:   ")); Serial.print(sensor.max_value); Serial.println(F("%"));
-  Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("%"));
-  Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("%"));
-  Serial.println(F("------------------------------------"));
   // Set delay between sensor readings based on sensor details.
-  delayMS = sensor.min_delay / 1000 / portTICK_PERIOD_MS;
-
+  const uint32_t dht_sense_interval = sensor.min_delay / 1000 / portTICK_PERIOD_MS;
+  printDhtSensorData();
+  
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
 
   // Create a one-shot timer
@@ -258,6 +224,32 @@ void setup(){
   vTaskDelete(NULL);
 }
 
+void printDhtSensorData() {
+  Serial.println(F("DHTxx Unified Sensor Example"));
+  // Print temperature sensor details.
+  sensor_t sensor;
+  dht.temperature().getSensor(&sensor);
+  Serial.println(F("------------------------------------"));
+  Serial.println(F("Temperature Sensor"));
+  Serial.print  (F("Sensor Type: ")); Serial.println(sensor.name);
+  Serial.print  (F("Driver Ver:  ")); Serial.println(sensor.version);
+  Serial.print  (F("Unique ID:   ")); Serial.println(sensor.sensor_id);
+  Serial.print  (F("Max Value:   ")); Serial.print(sensor.max_value); Serial.println(F("°C"));
+  Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("°C"));
+  Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("°C"));
+  Serial.println(F("------------------------------------"));
+  // Print humidity sensor details.
+  dht.humidity().getSensor(&sensor);
+  Serial.println(F("Humidity Sensor"));
+  Serial.print  (F("Sensor Type: ")); Serial.println(sensor.name);
+  Serial.print  (F("Driver Ver:  ")); Serial.println(sensor.version);
+  Serial.print  (F("Unique ID:   ")); Serial.println(sensor.sensor_id);
+  Serial.print  (F("Max Value:   ")); Serial.print(sensor.max_value); Serial.println(F("%"));
+  Serial.print  (F("Min Value:   ")); Serial.print(sensor.min_value); Serial.println(F("%"));
+  Serial.print  (F("Resolution:  ")); Serial.print(sensor.resolution); Serial.println(F("%"));
+  Serial.println(F("------------------------------------"));
+}
+
 void syncNtpDateTimeCallback(TimerHandle_t xTimer) {
   struct DATETIME dateTime;
   while(WiFi.status() != WL_CONNECTED) {
@@ -276,6 +268,22 @@ void syncNtpDateTimeCallback(TimerHandle_t xTimer) {
   // Try to add item to queue for 10 ticks, fail if queue is full
   if (xQueueSend(ntp_datetime_queue, (void *)&dateTime, 10) != pdTRUE) {
     Serial.println("ntp_datetime_queue queue full");
+  }
+}
+
+void syncDhtSensorCallback(TimerHandle_t xTimer) {
+  struct DHTEVENT dhtEvent;
+  // Get temperature event
+  dht.temperature().getEvent(&dhtEvent.event);
+  // Get humidity event
+  dht.humidity().getEvent(&dhtEvent.event);
+  // Test if sensor data is valid
+  if(isnan(dhtEvent.event.temperature) || isnan(dhtEvent.event.relative_humidity)) {
+    Serial.println(F("Error reading temperature or humidity!"));
+  }
+  // Try to add item to queue for 10 ticks, fail if queue is full
+  if(xQueueSend(dht_queue, (void *)&dhtEvent, 10) != pdTRUE) {
+    Serial.println("dht_queue queue full");
   }
 }
 
