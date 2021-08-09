@@ -124,7 +124,7 @@ void setup(){
   printDhtSensorData();
 
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
-  dht_queue = xQueueCreate(dht_queue_len, sizeof(DHTEVENT));
+  dht_queue = xQueueCreate(dht_queue_len, sizeof(DHTSENSORDATA));
 
   // Create a one-shot timer
   ntp_sync_timer = xTimerCreate(
@@ -250,18 +250,31 @@ void syncNtpDateTimeCallback(TimerHandle_t xTimer) {
 }
 
 void syncDhtSensorCallback(TimerHandle_t xTimer) {
-  struct DHTEVENT dhtEvent;
+  struct DHTSENSORDATA dhtSensorData;
+  sensors_event_t event;
   // Get temperature event
-  dht.temperature().getEvent(&dhtEvent.event);
+  dht.temperature().getEvent(&event);
+  dhtSensorData.temperature = event.temperature;
   // Get humidity event
-  dht.humidity().getEvent(&dhtEvent.event);
+  dht.humidity().getEvent(&event);
+  dhtSensorData.relative_humidity = event.relative_humidity;
+
   // Test if sensor data is valid
-  if (isnan(dhtEvent.event.temperature) || isnan(dhtEvent.event.relative_humidity)) {
+  if (isnan(dhtSensorData.temperature) || isnan(dhtSensorData.relative_humidity)) {
     Serial.println(F("Error reading temperature or humidity!"));
-  }
-  // Try to add item to queue for 10 ticks, fail if queue is full
-  if (xQueueSend(dht_queue, (void *)&dhtEvent, 10) != pdTRUE) {
-    Serial.println("dht_queue queue full");
+  } else {
+    Serial.print(F("Temperature: "));
+    Serial.print(dhtSensorData.temperature);
+    Serial.println(F("°C"));
+
+    Serial.print(F("Humidity: "));
+    Serial.print(dhtSensorData.relative_humidity);
+    Serial.println(F("%"));
+
+    // Try to add item to queue for 10 ticks, fail if queue is full
+    if (xQueueSend(dht_queue, (void *)&dhtSensorData, 10) != pdTRUE) {
+      Serial.println("dht_queue queue full");
+    }
   }
 }
 
@@ -304,32 +317,31 @@ void printMessages(void *parameters) {
 }
 
 void displayTimeStamp(int16_t x, int16_t y, uint16_t color) {
-  // DateTime now = rtc.now();
-  // struct DHTEVENT dhtEvent;
+  struct DHTSENSORDATA dhtSensorData;
 
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(color);
 
-  // if (xQueueReceive(dht_queue, (void *)&dhtEvent, 0) == pdTRUE) {
-  //   display.setCursor(x, y);
-  //   display.print(F("Temperature: "));
-  //   display.print(dhtEvent.event.temperature);
-  //   display.println(F("*C"));
-  //   display.display();
+  if (xQueueReceive(dht_queue, (void *)&dhtSensorData, 0) == pdTRUE) {
+    display.setCursor(x, y);
+    display.print(F("Temperature: "));
+    display.print(dhtSensorData.temperature);
+    display.println(F("*C"));
+    display.display();
 
-  //   display.setCursor(x, y + 10);
-  //   display.print(F("Humidity: "));
-  //   display.print(dhtEvent.event.relative_humidity);
-  //   display.println(F("%"));
-  //   display.display(); 
-  // }
-
-  display.setCursor(x, y + 20);
-  display.print(F("Date: "));
-  display.print(esp32Time.getDateTime(true));
-  display.println();
-  display.display();
+    display.setCursor(x, y + 10);
+    display.print(F("Humidity: "));
+    display.print(dhtSensorData.relative_humidity);
+    display.println(F("%"));
+    display.display(); 
+    
+    display.setCursor(x, y + 20);
+    display.print(F("Date: "));
+    display.print(esp32Time.getDateTime(true));
+    display.println();
+    display.display();
+  }
 }
 
 void displayMessages(void *parameters) {

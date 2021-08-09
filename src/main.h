@@ -34,7 +34,6 @@
  **/
 
 #include <FreeRTOS.h>
-#include <Wire.h>
 // Date and time functions using a DS3231 RTC connected via I2C and Wire lib
 #include <RTClib.h>
 RTC_DS3231 rtc;
@@ -58,12 +57,11 @@ ESP32Time esp32Time;
   static const BaseType_t app_cpu = 1;
 #endif
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
+#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
@@ -95,9 +93,10 @@ static const uint8_t dht_queue_len = 5;
 // Globals
 static QueueHandle_t dht_queue = NULL;
 static TimerHandle_t dht_event_timer = NULL;
-struct DHTEVENT {
-  sensors_event_t event;
-  String formattedDate;
+struct DHTSENSORDATA {
+  float temperature;        // temperature is in degrees centigrade (Celsius)
+  float relative_humidity;  // relative humidity in percent
+  long timestamp;           // measurment timestamp
 };
 
 static SemaphoreHandle_t display_mutex;
