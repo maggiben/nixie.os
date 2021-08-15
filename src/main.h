@@ -65,15 +65,23 @@ ESP32Time esp32Time;
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
+struct DHTSENSORDATA {
+  float temperature;        // temperature is in degrees centigrade (Celsius)
+  float relative_humidity;  // relative humidity in percent
+  long timestamp;           // measurment timestamp
+};
+
 // Functions
 void printDhtSensorData();
 void syncNtpDateTimeCallback(TimerHandle_t xTimer);
 void syncDhtSensorCallback(TimerHandle_t xTimer);
 void syncRtckWithNtp(void *parameters);
 void printMessages(void *parameters);
-void displayTimeStamp(int16_t x, int16_t y, uint16_t color);
+void displayTimeStamp(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color);
 void displayMessages(void *parameters);
 void setEsp32Time();
+void testOutput(void *parameters);
+void nixieTime();
 
 // Settings
 static const TickType_t ntp_sync_delay = 5000 / portTICK_PERIOD_MS;
@@ -93,10 +101,4 @@ static const uint8_t dht_queue_len = 5;
 // Globals
 static QueueHandle_t dht_queue = NULL;
 static TimerHandle_t dht_event_timer = NULL;
-struct DHTSENSORDATA {
-  float temperature;        // temperature is in degrees centigrade (Celsius)
-  float relative_humidity;  // relative humidity in percent
-  long timestamp;           // measurment timestamp
-};
-
-static SemaphoreHandle_t display_mutex;
+static SemaphoreHandle_t i2c_mutex;

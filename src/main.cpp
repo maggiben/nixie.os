@@ -42,8 +42,8 @@
 // change next line to use with another board/shield
 #include <WiFiUdp.h>
 
-const char *ssid     = "WIFI-3532";
-const char *password = "12345678";
+const char *ssid     = "TP-Link_42B4";
+const char *password = "pirulo123";
 
 WiFiUDP ntpUDP;
 
@@ -51,7 +51,7 @@ WiFiUDP ntpUDP;
 // no offset
 NTPClient timeClient(ntpUDP);
 
-void setup(){
+void setup() {
   BaseType_t result = pdFALSE;
   Serial.begin(115200);
 
@@ -96,13 +96,7 @@ void setup(){
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   } else {
-    // Create mutex before starting tasks
-    display_mutex = xSemaphoreCreateMutex();
-    if (display_mutex == NULL) {
-      Serial.println("Error insufficient heap memory to create display_mutex mutex");
-    } else {
-      display.clearDisplay();
-    }
+    display.clearDisplay();
   }
 
   // Set offset time in seconds to adjust for your timezone, for example:
@@ -122,6 +116,12 @@ void setup(){
   // Set delay between sensor readings based on sensor details.
   const TickType_t dht_sense_interval = sensor.min_delay / 1000 / portTICK_PERIOD_MS;
   printDhtSensorData();
+
+
+  i2c_mutex = xSemaphoreCreateMutex();
+  if (i2c_mutex == NULL) {
+    Serial.println("Error insufficient heap memory to create i2c_mutex mutex");
+  }
 
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
   dht_queue = xQueueCreate(dht_queue_len, sizeof(DHTSENSORDATA));
@@ -177,7 +177,7 @@ void setup(){
     "Display Print Service",
     1024,
     NULL,
-    1,
+    tskIDLE_PRIORITY,
     NULL,
     app_cpu);
   
@@ -188,6 +188,19 @@ void setup(){
   // Start RTC Synctonization with NTP task
   result = xTaskCreatePinnedToCore(syncRtckWithNtp,
     "RTC Synctonization with NTP",
+    1664,
+    NULL,
+    tskIDLE_PRIORITY,
+    NULL,
+    app_cpu);
+
+  if (result != pdPASS) {
+    Serial.println("RTC Synctonization with NTP Task creation failed.");
+  }
+
+    // Start RTC Synctonization with NTP task
+  result = xTaskCreatePinnedToCore(testOutput,
+    "Test Output",
     1536,
     NULL,
     1,
@@ -195,7 +208,7 @@ void setup(){
     app_cpu);
 
   if (result != pdPASS) {
-    Serial.println("RTC Synctonization with NTP Task creation failed.");
+    Serial.println("Test output Task creation failed.");
   }
 
   // Delete "setup and loop" task
@@ -283,16 +296,36 @@ void syncRtckWithNtp(void *parameters) {
   while (true) {
     // See if there's a message in the queue (do not block)
     if (xQueueReceive(ntp_datetime_queue, (void *)&dateTime, 0) == pdTRUE) {
-      DateTime now = rtc.now();
-      if (dateTime.epochTime != now.unixtime()) {
-        Serial.println(dateTime.epochTime);
-        Serial.println(now.unixtime());
-        // Adjust battery backup rtc
-        rtc.adjust(DateTime(dateTime.epochTime));
-        // Adjust internal rtc
-        esp32Time.setTime(dateTime.epochTime);
-      } else {
-        Serial.println("RTC and NTP are in sync");
+      // Serial.print("ntp: ");
+      // Serial.print(dateTime.epochTime);
+      // Serial.println();
+      if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+        DateTime now = rtc.now();
+        if (dateTime.epochTime != now.unixtime()) {
+          // Serial.print("internal rtc: ");
+          // Serial.println(esp32Time.getEpoch());
+          // Serial.println();
+          // Serial.print("external rtc: ");
+          // Serial.println(now.unixtime());
+          // Serial.println();
+          // // Adjust internal rtc
+          esp32Time.setTime(dateTime.epochTime);
+          // vTaskDelay(25 / portTICK_PERIOD_MS);
+          if (dateTime.epochTime != esp32Time.getEpoch()) {
+            Serial.println(F("Failed to sync internal RTC clock"));
+          }
+          // Adjust battery backup rtc
+          // Serial.println("Adjusting RTC");
+          rtc.adjust(DateTime(dateTime.epochTime));
+          // vTaskDelay(25 / portTICK_PERIOD_MS);
+          now = rtc.now();
+          if (dateTime.epochTime != now.unixtime()) {
+            Serial.println(F("Failed to sync external RTC clock"));
+          }
+        } else {
+          Serial.println(F("RTC clocks are in sync with NTP"));
+        }
+        xSemaphoreGive(i2c_mutex);
       }
     }
   }
@@ -316,39 +349,35 @@ void printMessages(void *parameters) {
   }
 }
 
-void displayTimeStamp(int16_t x, int16_t y, uint16_t color) {
-  struct DHTSENSORDATA dhtSensorData;
-
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(color);
-
-  if (xQueueReceive(dht_queue, (void *)&dhtSensorData, 0) == pdTRUE) {
+void displayTimeStamp(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color) {
+  if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(color);
     display.setCursor(x, y);
     display.print(F("Temperature: "));
-    display.print(dhtSensorData.temperature);
+    display.print(dhtSensorData->temperature);
     display.println(F("*C"));
-    display.display();
 
     display.setCursor(x, y + 10);
     display.print(F("Humidity: "));
-    display.print(dhtSensorData.relative_humidity);
+    display.print(dhtSensorData->relative_humidity);
     display.println(F("%"));
-    display.display(); 
     
     display.setCursor(x, y + 20);
     display.print(F("Date: "));
     display.print(esp32Time.getDateTime(true));
     display.println();
     display.display();
+    xSemaphoreGive(i2c_mutex);
   }
 }
 
 void displayMessages(void *parameters) {
+  struct DHTSENSORDATA dhtSensorData;
   while (true) {
-    if (xSemaphoreTake(display_mutex, portMAX_DELAY)) {
-      displayTimeStamp(0, 0, WHITE);
-      xSemaphoreGive(display_mutex);
+    if (xQueueReceive(dht_queue, (void *)&dhtSensorData, 0) == pdTRUE) { // Third param = Non Blocking
+      displayTimeStamp(&dhtSensorData, 0, 0, WHITE);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
@@ -357,4 +386,23 @@ void displayMessages(void *parameters) {
 void loop() {
   // Do nothing but allow yielding to lower-priority tasks
   vTaskDelay(1000 / portTICK_PERIOD_MS);
+}
+
+void nixieTime() {
+  int numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  for(byte i = 0; i < (sizeof(numbers) / sizeof(numbers[0])); i++) {
+    int number = numbers[i];
+    uint16_t output = number << 0;
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) { 
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
+void testOutput(void *parameters) {
+  while(true) {
+    nixieTime();
+  }
 }
