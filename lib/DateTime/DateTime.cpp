@@ -33,7 +33,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
 
-#include <NTPClient.h>
 #include "DateTime.h"
 
 // Based on https://github.com/PaulStoffregen/Time/blob/master/Time.cpp
@@ -61,4 +60,38 @@ String getFormattedDate(NTPClient *timeClient, unsigned long secs) {
   String monthStr = ++month < 10 ? "0" + String(month) : String(month); // jan is month 1  
   String dayStr = ++rawTime < 10 ? "0" + String(rawTime) : String(rawTime); // day of month  
   return String(year) + "-" + monthStr + "-" + dayStr + "T" + timeClient->getFormattedTime() + "Z";
+}
+
+bool getLocalTime(struct tm * info, uint32_t ms) {
+    uint32_t start = millis();
+    time_t now;
+    while((millis()-start) <= ms) {
+        time(&now);
+        localtime_r(&now, info);
+        if(info->tm_year > (2016 - 1900)){
+            return true;
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+    return false;
+}
+
+struct tm getTimeStruct() {
+  struct tm timeinfo;
+  getLocalTime(&timeinfo);
+  return timeinfo;
+}
+
+String getDateTime(bool mode) {
+	struct tm timeinfo = getTimeStruct();
+	char s[51];
+	if (mode)
+	{
+		strftime(s, 50, "%A, %B %d %Y %H:%M:%S", &timeinfo);
+	}
+	else
+	{
+		strftime(s, 50, "%a, %b %d %Y %H:%M:%S", &timeinfo);
+	}
+	return String(s);
 }

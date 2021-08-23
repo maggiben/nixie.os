@@ -35,15 +35,14 @@
  
 #include <FreeRTOS.h>
 #include "main.h"
-#include "DateTime.h"
 
 #include <WiFi.h>
 #include <NTPClient.h>
 // change next line to use with another board/shield
 #include <WiFiUdp.h>
 
-const char *ssid     = "TP-Link_42B4";
-const char *password = "pirulo123";
+// const char *ssid     = "TP-Link_42B4";
+// const char *password = "pirulo123x";
 
 WiFiUDP ntpUDP;
 
@@ -89,8 +88,12 @@ void setup() {
   mcp.pinMode(1, OUTPUT);
   mcp.pinMode(2, OUTPUT);
   mcp.pinMode(3, OUTPUT);
+
+
+  // Setup AP captive portal and wifi setup
+  setupHanlder();
   
-  WiFi.begin(ssid, password);
+  // WiFi.begin(ssid, password);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -117,10 +120,9 @@ void setup() {
   const TickType_t dht_sense_interval = sensor.min_delay / 1000 / portTICK_PERIOD_MS;
   printDhtSensorData();
 
-
   i2c_mutex = xSemaphoreCreateMutex();
   if (i2c_mutex == NULL) {
-    Serial.println("Error insufficient heap memory to create i2c_mutex mutex");
+    Serial.println(F("Error insufficient heap memory to create i2c_mutex mutex"));
   }
 
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
@@ -198,10 +200,10 @@ void setup() {
     Serial.println("RTC Synctonization with NTP Task creation failed.");
   }
 
-    // Start RTC Synctonization with NTP task
+  // Start RTC Synctonization with NTP task
   result = xTaskCreatePinnedToCore(testOutput,
     "Test Output",
-    1536,
+    1664,
     NULL,
     1,
     NULL,
@@ -209,6 +211,19 @@ void setup() {
 
   if (result != pdPASS) {
     Serial.println("Test output Task creation failed.");
+  }
+
+  // Start AP Captive Portal and Wifi Setup task
+  result = xTaskCreatePinnedToCore(handleApRequestTask,
+    "AP Captive Portal and Wifi Setup",
+    2560,
+    NULL,
+    2,
+    NULL,
+    app_cpu);
+
+  if (result != pdPASS) {
+    Serial.println("AP Captive Portal and Wifi Setup Task creation failed.");
   }
 
   // Delete "setup and loop" task
@@ -274,15 +289,15 @@ void syncDhtSensorCallback(TimerHandle_t xTimer) {
 
   // Test if sensor data is valid
   if (isnan(dhtSensorData.temperature) || isnan(dhtSensorData.relative_humidity)) {
-    Serial.println(F("Error reading temperature or humidity!"));
+    Serial.println("Error reading temperature or humidity!");
   } else {
-    Serial.print(F("Temperature: "));
+    Serial.print("Temperature: ");
     Serial.print(dhtSensorData.temperature);
-    Serial.println(F("°C"));
+    Serial.println("°C");
 
-    Serial.print(F("Humidity: "));
+    Serial.print("Humidity: ");
     Serial.print(dhtSensorData.relative_humidity);
-    Serial.println(F("%"));
+    Serial.println("%");
 
     // Try to add item to queue for 10 ticks, fail if queue is full
     if (xQueueSend(dht_queue, (void *)&dhtSensorData, 10) != pdTRUE) {
@@ -296,34 +311,22 @@ void syncRtckWithNtp(void *parameters) {
   while (true) {
     // See if there's a message in the queue (do not block)
     if (xQueueReceive(ntp_datetime_queue, (void *)&dateTime, 0) == pdTRUE) {
-      // Serial.print("ntp: ");
-      // Serial.print(dateTime.epochTime);
-      // Serial.println();
       if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
         DateTime now = rtc.now();
         if (dateTime.epochTime != now.unixtime()) {
-          // Serial.print("internal rtc: ");
-          // Serial.println(esp32Time.getEpoch());
-          // Serial.println();
-          // Serial.print("external rtc: ");
-          // Serial.println(now.unixtime());
-          // Serial.println();
           // // Adjust internal rtc
           esp32Time.setTime(dateTime.epochTime);
-          // vTaskDelay(25 / portTICK_PERIOD_MS);
           if (dateTime.epochTime != esp32Time.getEpoch()) {
-            Serial.println(F("Failed to sync internal RTC clock"));
+            Serial.println("Failed to sync internal RTC clock");
           }
           // Adjust battery backup rtc
-          // Serial.println("Adjusting RTC");
           rtc.adjust(DateTime(dateTime.epochTime));
-          // vTaskDelay(25 / portTICK_PERIOD_MS);
           now = rtc.now();
           if (dateTime.epochTime != now.unixtime()) {
-            Serial.println(F("Failed to sync external RTC clock"));
+            Serial.println("Failed to sync external RTC clock");
           }
         } else {
-          Serial.println(F("RTC clocks are in sync with NTP"));
+          Serial.println("RTC clocks are in sync with NTP");
         }
         xSemaphoreGive(i2c_mutex);
       }
@@ -349,26 +352,28 @@ void printMessages(void *parameters) {
   }
 }
 
-void displayTimeStamp(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color) {
+void displaySensorInfo(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color) {
   if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(color);
-    display.setCursor(x, y);
-    display.print(F("Temperature: "));
-    display.print(dhtSensorData->temperature);
-    display.println(F("*C"));
+    
+    // display.setCursor(x, y);
+    // display.print("Temperature: ");
+    // display.print(dhtSensorData->temperature);
+    // display.println("*C");
 
-    display.setCursor(x, y + 10);
-    display.print(F("Humidity: "));
-    display.print(dhtSensorData->relative_humidity);
-    display.println(F("%"));
+    // display.setCursor(x, y + 10);
+    // display.print("Humidity: ");
+    // display.print(dhtSensorData->relative_humidity);
+    // display.println("%");
     
     display.setCursor(x, y + 20);
-    display.print(F("Date: "));
-    display.print(esp32Time.getDateTime(true));
-    display.println();
+    display.print("Date: ");
+    display.println(esp32Time.getDateTime(true));
+    
     display.display();
+
     xSemaphoreGive(i2c_mutex);
   }
 }
@@ -377,7 +382,7 @@ void displayMessages(void *parameters) {
   struct DHTSENSORDATA dhtSensorData;
   while (true) {
     if (xQueueReceive(dht_queue, (void *)&dhtSensorData, 0) == pdTRUE) { // Third param = Non Blocking
-      displayTimeStamp(&dhtSensorData, 0, 0, WHITE);
+      displaySensorInfo(&dhtSensorData, 0, 0, WHITE);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
@@ -389,8 +394,8 @@ void loop() {
 }
 
 void nixieTime() {
-  int numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  for(byte i = 0; i < (sizeof(numbers) / sizeof(numbers[0])); i++) {
+  uint8_t numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  for(uint8_t i = 0; i < (sizeof(numbers) / sizeof(numbers[0])); i++) {
     int number = numbers[i];
     uint16_t output = number << 0;
     if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) { 

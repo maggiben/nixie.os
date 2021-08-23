@@ -1,9 +1,10 @@
+
 /**
- * @file         : DateTime.h
- * @summary      : Date time helper functions
+ * @file         : Nixie.cpp
+ * @summary      : Nixie handler based on the 74141 driver
  * @version      : 1.0.0
  * @project      : Nixie Clock
- * @description  : A set of functions to help date time parsing/serializing
+ * @description  : Nixie handler based on the 74141 driver
  * @author       : Benjamin Maggi
  * @email        : benjaminmaggi@gmail.com
  * @date         : 08 Aug 2021
@@ -33,19 +34,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
 
-#pragma once
-#include "esp32-hal.h"
-#include "NTPClient.h"
-#include "time.h"
-#include <Arduino.h>
-#include <sys/time.h>
-/**
-* @return secs argument (or 0 for current date) formatted to ISO 8601
-* like `2004-02-12T15:19:21+00:00`
-*/
-#define LEAP_YEAR(Y)( (Y>0) && !(Y%4) && ( (Y%100) || !(Y%400) ) )
+#include "Nixie.h"
 
-String getFormattedDate(NTPClient *timeClient, unsigned long secs = 0);
-bool getLocalTime(struct tm * info, uint32_t ms);
-struct tm getTimeStruct();
-String getDateTime(bool mode);
+Nixie::Nixie(unsigned long epoch) {
+  this->epoch = epoch;
+}

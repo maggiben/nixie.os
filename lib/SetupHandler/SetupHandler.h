@@ -1,9 +1,9 @@
 /**
- * @file         : DateTime.h
- * @summary      : Date time helper functions
+ * @file         : CaptiveRequestHandler.h
+ * @summary      : Nixie handler based on the 74141 driver
  * @version      : 1.0.0
  * @project      : Nixie Clock
- * @description  : A set of functions to help date time parsing/serializing
+ * @description  : Nixie handler based on the 74141 driver
  * @author       : Benjamin Maggi
  * @email        : benjaminmaggi@gmail.com
  * @date         : 08 Aug 2021
@@ -34,18 +34,24 @@
  **/
 
 #pragma once
-#include "esp32-hal.h"
-#include "NTPClient.h"
-#include "time.h"
-#include <Arduino.h>
-#include <sys/time.h>
-/**
-* @return secs argument (or 0 for current date) formatted to ISO 8601
-* like `2004-02-12T15:19:21+00:00`
-*/
-#define LEAP_YEAR(Y)( (Y>0) && !(Y%4) && ( (Y%100) || !(Y%400) ) )
+#ifndef CAPTIVEREQUESTHANDLER_H
+#define CAPTIVEREQUESTHANDLER_H
 
-String getFormattedDate(NTPClient *timeClient, unsigned long secs = 0);
-bool getLocalTime(struct tm * info, uint32_t ms);
-struct tm getTimeStruct();
-String getDateTime(bool mode);
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WebServer.h>
+#include <DNSServer.h>
+#include <ESPmDNS.h>
+#include <Preferences.h>
+// #include <FS.h>
+// #include <SD.h>
+// #include <SPI.h>
+#include "utils.h"
+
+
+
+void setupHanlder();
+void handleApRequestTask(void *parameters);
+
+#endif
+

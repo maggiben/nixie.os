@@ -71,13 +71,16 @@ struct DHTSENSORDATA {
   long timestamp;           // measurment timestamp
 };
 
+#include "DateTime.h"
+#include "SetupHandler.h"
+
 // Functions
 void printDhtSensorData();
 void syncNtpDateTimeCallback(TimerHandle_t xTimer);
 void syncDhtSensorCallback(TimerHandle_t xTimer);
 void syncRtckWithNtp(void *parameters);
 void printMessages(void *parameters);
-void displayTimeStamp(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color);
+void displaySensorInfo(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color);
 void displayMessages(void *parameters);
 void setEsp32Time();
 void testOutput(void *parameters);
@@ -102,3 +105,5 @@ static const uint8_t dht_queue_len = 5;
 static QueueHandle_t dht_queue = NULL;
 static TimerHandle_t dht_event_timer = NULL;
 static SemaphoreHandle_t i2c_mutex;
+
+
