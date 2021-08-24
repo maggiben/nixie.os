@@ -43,12 +43,14 @@
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
-// #include <FS.h>
-// #include <SD.h>
-// #include <SPI.h>
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#include "HttpHandler.h"
 #include "utils.h"
 
-
+// DNS server
+#define DNS_PORT 53
 
 void setupHanlder();
 void handleApRequestTask(void *parameters);

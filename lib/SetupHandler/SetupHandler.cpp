@@ -1,7 +1,5 @@
 #include "SetupHandler.h"
 
-// DNS server
-const byte DNS_PORT = 53;
 DNSServer dnsServer;
 WebServer server(80);
 
@@ -28,6 +26,8 @@ boolean connect;
 /** Last time I tried to connect to WLAN */
 long lastConnectTry = 0;
 
+HttpHandler httpHandler(&server, myHostname);
+
 /** Load WLAN credentials from Preferences */
 void loadCredentials() {
   preferences.getString("ssid", ssid, sizeof(ssid));
@@ -48,6 +48,8 @@ void saveCredentials() {
 
 /** Redirect to captive portal if we got a request for another domain. Return true in that case so the page handler do not try to handle the request again. */
 boolean captivePortal() {
+  Serial.print("hostHeader: ");
+  Serial.println(server.hostHeader());
   if (!isIp(server.hostHeader()) && server.hostHeader() != (String(myHostname)+".local")) {
     Serial.print("Request redirected to captive portal");
     server.sendHeader("Location", String("http://") + toStringIp(server.client().localIP()), true);
@@ -63,25 +65,45 @@ void handleRoot() {
   if (captivePortal()) { // If caprive portal redirect instead of displaying the page.
     return;
   }
-  server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  server.sendHeader("Pragma", "no-cache");
-  server.sendHeader("Expires", "-1");
-  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-  server.sendContent(
-    "<html><head></head><body>"
-    "<h1>HELLO WORLD!!</h1>"
-  );
-  if (server.client().localIP() == apIP) {
-    server.sendContent(String("<p>You are connected through the soft AP: ") + softAP_ssid + "</p>");
-  } else {
-    server.sendContent(String("<p>You are connected through the wifi network: ") + ssid + "</p>");
+  fs::FS &fs = SD;
+  String path = server.uri(); //saves the to a string server uri ex.(192.168.100.110/edit server uri is "/edit")
+  Serial.print("path ");  Serial.println(path);
+
+  //To send the index.html when the serves uri is "/"
+  if (path.endsWith("/")) {
+    path += "index.html";
   }
-  server.sendContent(
-    "<p>You may want to <a href='/wifi'>config the wifi connection</a>.</p>"
-    "</body></html>"
-  );
-  server.client().stop(); // Stop is needed because we sent no content length
+  String contentType = getContentType(&server, path);
+  Serial.print("contentType ");
+  Serial.println(contentType);
+  File file = fs.open(path, "r"); //Open the File with file name = to path with intention to read it. For other modes see <a href="https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html" style="font-size: 13.5px;"> https://arduino-esp8266.readthedocs.io/en/latest/...</a>
+  size_t sent = server.streamFile(file, contentType); //sends the file to the server references from <a href="https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h" style="font-size: 13.5px;"> https://arduino-esp8266.readthedocs.io/en/latest/...</a>
+  if (sent != file.size()) {
+    Serial.println("Sent less data than expected!");
+  }
+  Serial.print("sent: ");
+  Serial.println(sent);
+  file.close(); //Close the file
+
+  // server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  // server.sendHeader("Pragma", "no-cache");
+  // server.sendHeader("Expires", "-1");
+  // server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  // server.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+  // server.sendContent(
+  //   "<html><head></head><body>"
+  //   "<h1>HELLO WORLD!!</h1>"
+  // );
+  // if (server.client().localIP() == apIP) {
+  //   server.sendContent(String("<p>You are connected through the soft AP: ") + softAP_ssid + "</p>");
+  // } else {
+  //   server.sendContent(String("<p>You are connected through the wifi network: ") + ssid + "</p>");
+  // }
+  // server.sendContent(
+  //   "<p>You may want to <a href='/wifi'>config the wifi connection</a>.</p>"
+  //   "</body></html>"
+  // );
+  // server.client().stop(); // Stop is needed because we sent no content length
 }
 
 void handleNotFound() {
@@ -106,25 +128,24 @@ void handleNotFound() {
   server.send ( 404, "text/plain", message );
 }
 
-/*
-void initSDCard(){
-  if(!SD.begin()){
+void initSDCard() {
+  if(!SD.begin(SS)) {
     Serial.println("Card Mount Failed");
     return;
   }
   uint8_t cardType = SD.cardType();
 
-  if(cardType == CARD_NONE){
+  if(cardType == CARD_NONE) {
     Serial.println("No SD card attached");
     return;
   }
 
   Serial.print("SD Card Type: ");
-  if(cardType == CARD_MMC){
+  if(cardType == CARD_MMC) {
     Serial.println("MMC");
-  } else if(cardType == CARD_SD){
+  } else if(cardType == CARD_SD) {
     Serial.println("SDSC");
-  } else if(cardType == CARD_SDHC){
+  } else if(cardType == CARD_SDHC) {
     Serial.println("SDHC");
   } else {
     Serial.println("UNKNOWN");
@@ -132,7 +153,6 @@ void initSDCard(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   Serial.printf("SD Card Size: %lluMB\n", cardSize);
 }
-*/
 
 void setupHanlder() {
   preferences.begin("CapPortAdv", false);
@@ -148,17 +168,36 @@ void setupHanlder() {
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(DNS_PORT, "*", apIP);
 
+  if (!MDNS.begin(myHostname))  {
+    Serial.println("Error setting up MDNS responder!");
+  } else {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("MDNS responder started");
+    Serial.print("You can now connect to http://");
+    Serial.print(myHostname);
+    Serial.println(".local");
+  }
+  
+  initSDCard();
 
-  // initSDCard();
+  // HttpHandler httpHandler(&server, myHostname);
 
   /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
-  server.on("/", handleRoot);
+  // server.on("/", handleRoot);
+  // server.on("/", []() {
+  //   return httpHandler.handleRoot();
+  // });
   // server.serveStatic("/", SD, "/");
-  server.on("/inline", []() {
-    server.send(200, "text/plain", "this works as well");
-  });
-  server.onNotFound ( handleNotFound );
-  server.begin(); // Web server start
+  // server.on("/inline", []() {
+  //   server.send(200, "text/plain", "this works as well");
+  // });
+  // server.onNotFound([]() {
+  //   return httpHandler.handleNotFound();
+  // });
+  // server.begin(); // Web server start
+  
+  httpHandler.begin();
+
   Serial.println("HTTP server started");
   loadCredentials(); // Load WLAN credentials from network
   connect = strlen(ssid) > 0; // Request WLAN connect if there is a SSID

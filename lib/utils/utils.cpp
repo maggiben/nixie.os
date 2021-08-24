@@ -1,4 +1,3 @@
-#include <WebServer.h>
 #include "utils.h"
 
 /** Is this an IP? */
