@@ -52,3 +52,40 @@ String getContentType(WebServer *server, String filename) {
   }
   return "text/plain";
 }
+
+WIFI_CREDENTIAL* loadCredentials() {
+  /* Storage for SSID and password */
+  Preferences preferences;
+  WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
+  preferences.begin("CapPortAdv", false);
+  preferences.getString("ssid", wifiCredential->ssid, sizeof(wifiCredential->ssid));
+  preferences.getString("password", wifiCredential->password, sizeof(wifiCredential->password));
+  Serial.println("Recovered credentials:");
+  Serial.println(wifiCredential->ssid);
+  Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
+  preferences.end();
+  return wifiCredential;
+}
+
+
+/** Store WLAN credentials to Preference */
+WIFI_CREDENTIAL* saveCredentials() {
+  /* Storage for SSID and password */
+  Preferences preferences;
+  size_t size = 0;
+  WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
+  preferences.begin("CapPortAdv", false);
+  size = preferences.putString("ssid", wifiCredential->ssid);
+  if (size != sizeof(wifiCredential->ssid)) {
+    Serial.println("Sent less data than expected!");
+  }
+  size = preferences.putString("password", wifiCredential->password);
+  if (size != sizeof(wifiCredential->password)) {
+    Serial.println("Sent less data than expected!");
+  }
+  Serial.println("Saved credentials:");
+  Serial.println(wifiCredential->ssid);
+  Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
+  preferences.end();
+  return wifiCredential;
+}

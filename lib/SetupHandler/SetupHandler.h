@@ -42,7 +42,6 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
-#include <Preferences.h>
 #include <FS.h>
 #include <SD.h>
 #include <SPI.h>
@@ -51,11 +50,6 @@
 
 // DNS server
 #define DNS_PORT 53
-struct WIFI_CREDENTIAL {
-  /* Don't set this wifi credentials. They are configurated at runtime and stored on EEPROM */
-  char ssid[32];
-  char password[32];
-};
 
 void setupHanlder();
 void handleApRequestTask(void *parameters);

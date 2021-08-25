@@ -12,13 +12,16 @@ class HttpHandler {
     WebServer* server;
     const char *hostname;
     IPAddress *accessPointIp;
+    const char *softApSsid;
     boolean captivePortal();
     ESP32Time esp32Time;
   public:
-    HttpHandler(WebServer *server, const char *hostname, IPAddress *accessPointIp);
+    HttpHandler(WebServer *server, const char *hostname, IPAddress *accessPointIp, const char *softApSsid);
     void handleRoot();
     void getIp();
     void getRtcTime();
+    void handleWifi();
+    void getWifiNetworkConfig();
     void handleNotFound();
     void begin();
     void stop();

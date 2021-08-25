@@ -20,9 +20,6 @@ const char *myHostname = "nixie";
 char ssid[32] = "";
 char password[32] = "";
 
-/* Storage for SSID and password */
-Preferences preferences;
-
 /* Soft AP network parameters */
 IPAddress apIP(192, 168, 0, 1);
 IPAddress netMsk(255, 255, 255, 0);
@@ -33,49 +30,9 @@ boolean connect;
 /** Last time I tried to connect to WLAN */
 long lastConnectTry = 0;
 
-HttpHandler httpHandler(&server, myHostname, &apIP);
-
-TimerHandle_t sd_timer = NULL;
-
-/** Load WLAN credentials from Preferences */
-// void loadCredentials(WIFI_CREDENTIAL *wifiCredential) {
-//   // struct WIFI_CREDENTIAL wifiCredential;
-//   preferences.getString("ssid", wifiCredential->ssid, sizeof(wifiCredential->ssid));
-//   preferences.getString("password", wifiCredential->password, sizeof(wifiCredential->password));
-//   Serial.println("Recovered credentials:");
-//   Serial.println(wifiCredential->ssid);
-//   Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
-//   // return &wifiCredential;
-// }
-
-WIFI_CREDENTIAL* loadCredentials() {
-  WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
-  preferences.getString("ssid", wifiCredential->ssid, sizeof(wifiCredential->ssid));
-  preferences.getString("password", wifiCredential->password, sizeof(wifiCredential->password));
-  Serial.println("Recovered credentials:");
-  Serial.println(wifiCredential->ssid);
-  Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
-  return wifiCredential;
-}
+HttpHandler httpHandler(&server, myHostname, &apIP, softAP_ssid);
 
 
-/** Store WLAN credentials to Preference */
-WIFI_CREDENTIAL* saveCredentials() {
-  size_t size = 0;
-  WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
-  size = preferences.putString("ssid", wifiCredential->ssid);
-  if (size != sizeof(wifiCredential->ssid)) {
-    Serial.println("Sent less data than expected!");
-  }
-  size = preferences.putString("password", wifiCredential->password);
-  if (size != sizeof(wifiCredential->ssid)) {
-    Serial.println("Sent less data than expected!");
-  }
-  Serial.println("Saved credentials:");
-  Serial.println(wifiCredential->ssid);
-  Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
-  return wifiCredential;
-}
 
 void initSDCard() {
   if(!SD.begin(SS)) {
@@ -107,7 +64,6 @@ void initSDCard() {
 
 void setupHanlder() {
   BaseType_t result = pdFALSE;
-  preferences.begin("CapPortAdv", false);
   Serial.print("Configuring access point...");
   WiFi.softAPConfig(apIP, apIP, netMsk);
   WiFi.softAP(softAP_ssid, softAP_password);
@@ -143,7 +99,7 @@ void setupHanlder() {
   
   connect = strlen(wifiCredential->ssid) > 0; // Request WLAN connect if there is a SSID
   vPortFree(wifiCredential);
-  
+
   Serial.print("Connect: ");
   Serial.println(connect);
 
