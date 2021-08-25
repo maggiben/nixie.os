@@ -213,18 +213,18 @@ void setup() {
     Serial.println("Test output Task creation failed.");
   }
 
-  // Start AP Captive Portal and Wifi Setup task
-  result = xTaskCreatePinnedToCore(handleApRequestTask,
-    "AP Captive Portal and Wifi Setup",
-    2560,
-    NULL,
-    2,
-    NULL,
-    app_cpu);
+  // // Start AP Captive Portal and Wifi Setup task
+  // result = xTaskCreatePinnedToCore(handleApRequestTask,
+  //   "AP Captive Portal and Wifi Setup",
+  //   2560,
+  //   NULL,
+  //   2,
+  //   NULL,
+  //   app_cpu);
 
-  if (result != pdPASS) {
-    Serial.println("AP Captive Portal and Wifi Setup Task creation failed.");
-  }
+  // if (result != pdPASS) {
+  //   Serial.println("AP Captive Portal and Wifi Setup Task creation failed.");
+  // }
 
   // Delete "setup and loop" task
   vTaskDelete(NULL);

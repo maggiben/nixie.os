@@ -1,12 +1,19 @@
 #include "httpHandler.h"
 
-HttpHandler::HttpHandler(WebServer *server, const char *hostname) {
+HttpHandler::HttpHandler(WebServer *server, const char *hostname, IPAddress *accessPointIp) {
   this->server = server;
   this->hostname = hostname;
+  this->accessPointIp = accessPointIp;
 
 /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
   this->server->on("/", [this]() {
     return this->handleRoot();
+  });
+  this->server->on("/ip", HTTP_GET, [this]() {
+    return this->getIp();
+  });
+  this->server->on("/rtc", HTTP_GET, [this]() {
+    return this->getRtcTime();
   });
   this->server->on("/inline", [this]() {
     this->server->send(200, "text/plain", "this works as well");
@@ -65,6 +72,24 @@ void HttpHandler::handleRoot() {
   Serial.print("sent: ");
   Serial.println(sent);
   file.close(); //Close the file
+}
+
+void HttpHandler::getIp() {
+  // To get an approximate value for the document site go to: https://arduinojson.org/v6/assistant/
+  StaticJsonDocument<128> document;
+  String response;
+  document["apIP"] = this->server->client().localIP();
+  document["localIP"] = this->accessPointIp->toString();
+  serializeJson(document, response);
+  this->server->send(200, "application/json", response);
+}
+
+void HttpHandler::getRtcTime() {
+  StaticJsonDocument<32> document;
+  String response;
+  document["rtc"] = esp32Time.getEpoch();
+  serializeJson(document, response);
+  this->server->send(200, "application/json", response);
 }
 
 void HttpHandler::handleNotFound() {
