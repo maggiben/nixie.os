@@ -57,6 +57,7 @@ WIFI_CREDENTIAL* loadCredentials() {
   /* Storage for SSID and password */
   Preferences preferences;
   WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
+  memset(wifiCredential, 0, sizeof(WIFI_CREDENTIAL));
   preferences.begin("CapPortAdv", false);
   preferences.getString("ssid", wifiCredential->ssid, sizeof(wifiCredential->ssid));
   preferences.getString("password", wifiCredential->password, sizeof(wifiCredential->password));
@@ -69,11 +70,10 @@ WIFI_CREDENTIAL* loadCredentials() {
 
 
 /** Store WLAN credentials to Preference */
-WIFI_CREDENTIAL* saveCredentials() {
+void saveCredentials(WIFI_CREDENTIAL *wifiCredential) {
   /* Storage for SSID and password */
   Preferences preferences;
   size_t size = 0;
-  WIFI_CREDENTIAL *wifiCredential = (WIFI_CREDENTIAL*)pvPortMalloc(sizeof(WIFI_CREDENTIAL));
   preferences.begin("CapPortAdv", false);
   size = preferences.putString("ssid", wifiCredential->ssid);
   if (size != sizeof(wifiCredential->ssid)) {
@@ -87,5 +87,5 @@ WIFI_CREDENTIAL* saveCredentials() {
   Serial.println(wifiCredential->ssid);
   Serial.println(strlen(wifiCredential->password)>0?"********":"<no password>");
   preferences.end();
-  return wifiCredential;
+  return;
 }

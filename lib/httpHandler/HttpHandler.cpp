@@ -1,12 +1,15 @@
 #include "httpHandler.h"
 
-HttpHandler::HttpHandler(WebServer *server, const char *hostname, IPAddress *accessPointIp, const char *softApSsid) {
+HttpHandler::HttpHandler(WebServer *server, const char *hostname, IPAddress *accessPointIp, const char *softApSsid, QueueHandle_t connectQueue) {
   this->server = server;
   this->hostname = hostname;
   this->accessPointIp = accessPointIp;
   this->softApSsid = softApSsid;
+  this->connectQueue = connectQueue;
 
-/* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
+  /* Enable CORS */
+  // this->server->enableCORS(true);
+  /* Setup web pages: root, wifi config pages, SO captive portal detectors and not found. */
   this->server->on("/", [this]() {
     return this->handleRoot();
   });
@@ -171,9 +174,9 @@ void HttpHandler::getWifiNetworkConfig() {
   this->server->send(200, "application/xml", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
   this->server->sendContent("<wifi-config>");
   if (this->server->client().localIP() == *this->accessPointIp) {
-    this->server->sendContent(String("<connection-ssid>") + this->softApSsid + "</connection-type>");
+    this->server->sendContent(String("<connection-ssid>") + this->softApSsid + "</connection-ssid>");
   } else {
-    this->server->sendContent(String("<connection-type>") + wifiCredential->ssid + "</connection-type>");
+    this->server->sendContent(String("<connection-ssid>") + wifiCredential->ssid + "</connection-ssid>");
   }
   this->server->sendContent(String() + "<ssid>" + String(this->softApSsid) + "</ssid>");
   this->server->sendContent(String() + "<ip>" + toStringIp(WiFi.localIP()) + "</ip>");
@@ -183,7 +186,11 @@ void HttpHandler::getWifiNetworkConfig() {
   this->server->sendContent("<networks>");
   if (n > 0) {
     for (int i = 0; i < n; i++) {
-      this->server->sendContent(String() + "<ssid>" + WiFi.SSID(i) + String((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":" *") + " (" + WiFi.RSSI(i) + ")</ssid>");
+      this->server->sendContent(String("<network>"));
+        this->server->sendContent(String("<ssid>") + WiFi.SSID(i) + "</ssid>");
+        this->server->sendContent(String("<encryption-type>") + WiFi.encryptionType(i) + "</encryption-type>");
+        this->server->sendContent(String("<rssi>") + WiFi.RSSI(i) + "</rssi>");
+      this->server->sendContent(String("</network>"));
     }
   } else {
     this->server->sendContent(String() + "<error>No WLAN found</error>");
@@ -213,4 +220,25 @@ void HttpHandler::handleNotFound() {
   this->server->sendHeader("Pragma", "no-cache");
   this->server->sendHeader("Expires", "-1");
   this->server->send (404, "text/plain", message);
+}
+
+/** Handle the WLAN save form and redirect to WLAN config page again */
+void HttpHandler::handleWifiSave() {
+  WIFI_CREDENTIAL wifiCredential;
+  Serial.println("wifi save");
+  this->server->arg("ssid").toCharArray(wifiCredential.ssid, sizeof(wifiCredential.ssid) - 1);
+  this->server->arg("password").toCharArray(wifiCredential.password, sizeof(wifiCredential.password) - 1);
+  this->server->sendHeader("Location", "wifi", true);
+  this->server->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  this->server->sendHeader("Pragma", "no-cache");
+  this->server->sendHeader("Expires", "-1");
+  this->server->send (302, "text/plain", "");  // Empty content inhibits Content-length header so we have to close the socket ourselves.
+  this->server->client().stop(); // Stop is needed because we sent no content length
+  // saveCredentials();
+  // Request WLAN connect with new credentials if there is a SSID
+  // if(strlen(wifiCredential.ssid) > 0) {
+  //   if (xQueueSend(this->connectQueue, (void *)&wifiCredential, 10) != pdTRUE) {
+  //     Serial.println("connectQueue queue full");
+  //   }
+  // };
 }

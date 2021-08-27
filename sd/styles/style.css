@@ -1,0 +1,308 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-font-smoothing: antialiased;
+  -o-font-smoothing: antialiased;
+  font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #eee;
+  margin:0px;
+}
+
+body {
+  background-image: -webkit-gradient(radial, 50% 100%, 0, 50% 100%, 100, color-stop(50%, rgba(61, 110, 178, 0.2)), color-stop(100%, rgba(28, 45, 83, 0))), -webkit-gradient(radial, 100% 10%, 0, 100% 10%, 80, color-stop(20%, rgba(185, 75, 12, 0.6)), color-stop(80%, rgba(72, 154, 50, 0.3))), -webkit-gradient(linear, 0% 0%, 100% 100%, color-stop(1%, #475ead), color-stop(50%, #ae8439), color-stop(100%, #1d2541));
+  background-image: -webkit-radial-gradient(50% 100%, ellipse cover, rgba(61, 110, 178, 0.2) 50%, rgba(28, 45, 83, 0) 100%), -webkit-radial-gradient(100% 10%, ellipse cover, rgba(185, 75, 12, 0.6) 20%, rgba(72, 154, 50, 0.3) 80%), -webkit-linear-gradient(left top, #475ead 1%, #ae8439 50%, #1d2541 100%);
+  background-image: -moz-radial-gradient(50% 100%, ellipse cover, rgba(61, 110, 178, 0.2) 50%, rgba(28, 45, 83, 0) 100%), -moz-radial-gradient(100% 10%, ellipse cover, rgba(185, 75, 12, 0.6) 20%, rgba(72, 154, 50, 0.3) 80%), -moz-linear-gradient(left top, #475ead 1%, #ae8439 50%, #1d2541 100%);
+  background-image: -o-radial-gradient(50% 100%, ellipse cover, rgba(61, 110, 178, 0.2) 50%, rgba(28, 45, 83, 0) 100%), -o-radial-gradient(100% 10%, ellipse cover, rgba(185, 75, 12, 0.6) 20%, rgba(72, 154, 50, 0.3) 80%), -o-linear-gradient(left top, #475ead 1%, #ae8439 50%, #1d2541 100%);
+  background-image: radial-gradient(50% 100%, ellipse cover, rgba(61, 110, 178, 0.2) 50%, rgba(28, 45, 83, 0) 100%), radial-gradient(100% 10%, ellipse cover, rgba(185, 75, 12, 0.6) 20%, rgba(72, 154, 50, 0.3) 80%), linear-gradient(left top, #475ead 1%, #ae8439 50%, #1d2541 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+footer {
+  margin-top: 20px;
+}
+
+.container {
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+#wificonfig input[type="text"],
+#wificonfig textarea,
+#wificonfig button[type="submit"] {
+  font: 400 12px/16px Arial, Helvetica, sans-serif;
+}
+
+#wificonfig {
+  position: relative;
+  background: #F9F9F9;
+  padding: 25px;
+  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
+}
+
+#wificonfig h3 {
+  display: block;
+  font-size: 30px;
+  font-weight: 300;
+  margin-bottom: 10px;
+}
+
+#wificonfig h4 {
+  margin: 5px 0 15px;
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+#wificonfig label {
+  text-transform: uppercase;
+  font-size: 75%;
+  color: #2C3E50;
+}
+
+/*Hide all except first fieldset*/
+#wificonfig fieldset:not(:first-of-type) {
+	display: none;
+}
+
+#wificonfig fieldset {
+  border: medium none !important;
+  margin: 0 0 10px;
+  min-width: 100%;
+  padding: 0;
+  width: 100%;
+}
+
+#wificonfig input[type="text"],
+#wificonfig input[type="password"],
+#wificonfig input[type="date"],
+#wificonfig input[type="time"],
+#wificonfig select,
+#wificonfig textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  background: #FFF;
+  margin: 0 0 5px;
+  padding: 10px;
+}
+
+#wificonfig input[type="text"]:hover,
+#wificonfig input[type="password"]:hover,
+#wificonfig input[type="date"]:hover,
+#wificonfig input[type="time"]:hover,
+#wificonfig select,
+#wificonfig textarea:hover {
+  -webkit-transition: border-color 0.3s ease-in-out;
+  -moz-transition: border-color 0.3s ease-in-out;
+  transition: border-color 0.3s ease-in-out;
+  border: 1px solid #aaa;
+}
+
+#wificonfig textarea {
+  height: 100px;
+  max-width: 100%;
+  resize: none;
+}
+
+input[type="checkbox"] {
+  vertical-align: middle;
+}
+
+#wificonfig .buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+#wificonfig .field-alert {
+  border: 1px solid red !important;
+}
+
+#wificonfig input[type="submit"],
+#wificonfig input[type="button"] {
+  cursor: pointer;
+  border: none;
+  background: #4CAF50;
+  color: #FFF;
+  margin: 5px 5px 5px 0px;
+  padding: 10px;
+  font-size: 15px;
+}
+
+#wificonfig input[type="button"].refresh {
+  background: #2f97d3;
+}
+
+#wificonfig input[type="submit"]:hover,
+#wificonfig input[type="button"]:hover {
+  background: #43A047;
+  -webkit-transition: background 0.3s ease-in-out;
+  -moz-transition: background 0.3s ease-in-out;
+  transition: background-color 0.3s ease-in-out;
+}
+
+#wificonfig input[type="button"].refresh:hover {
+  background: #277fb3;
+}
+
+#wificonfig input[type="submit"]:active,
+#wificonfig input[type="button"]:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+#form-overlay {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: rgb(0 0 0 / 65%);
+  width: 100%;
+  height: 100%;
+}
+
+#wificonfig input:focus,
+#wificonfig select,
+#wificonfig textarea:focus {
+  outline: 0;
+  border: 1px solid #aaa;
+}
+
+/*headings*/
+#wificonfig fieldset legend {
+  font-weight: bold;
+	text-transform: uppercase;
+	color: #2C3E50;
+	margin-bottom: 10px;
+}
+
+::-webkit-input-placeholder {
+  color: #888;
+}
+
+:-moz-placeholder {
+  color: #888;
+}
+
+::-moz-placeholder {
+  color: #888;
+}
+
+:-ms-input-placeholder {
+  color: #888;
+}
+
+/*progressbar*/
+#progressbar {
+	margin-bottom: 30px;
+	overflow: hidden;
+	/*CSS counters to number the steps*/
+	counter-reset: step;
+}
+#progressbar li {
+  text-align: center;
+	list-style-type: none;
+	color: white;
+	text-transform: uppercase;
+	font-size: 9px;
+	width: 33.33%;
+	float: left;
+	position: relative;
+}
+#progressbar li:before {
+	content: counter(step);
+	counter-increment: step;
+	width: 20px;
+	line-height: 20px;
+	display: block;
+	font-size: 10px;
+	color: #333;
+	background: white;
+	border-radius: 3px;
+	margin: 0 auto 5px auto;
+}
+/*progressbar connectors*/
+#progressbar li:after {
+	content: '';
+	width: 100%;
+	height: 2px;
+	background: white;
+	position: absolute;
+	left: -50%;
+	top: 9px;
+	z-index: -1; /*put it behind the numbers*/
+}
+#progressbar li:first-child:after {
+	/*connector not needed before the first step*/
+	content: none; 
+}
+/*marking active/completed steps green*/
+/*The number of the step and the connector before it = green*/
+#progressbar li.active:before,  #progressbar li.active:after{
+	background: #27AE60;
+	color: white;
+}
+
+#loading-spinner {
+  display: flex;
+  height: 100%;
+  position: relative;
+  z-index: 999999;
+}
+
+#loading-spinner .spin-icon {
+  margin: auto;
+  width: 80px;
+  height: 80px;
+
+  border: solid 3px transparent;
+  border-top-color:  #999;
+  border-left-color: #999;
+  border-radius: 80px;
+
+  -webkit-animation: loading-spinner 500ms linear infinite;
+  -moz-animation:    loading-spinner 500ms linear infinite;
+  -ms-animation:     loading-spinner 500ms linear infinite;
+  -o-animation:      loading-spinner 500ms linear infinite;
+  animation:         loading-spinner 500ms linear infinite;
+}
+
+@-webkit-keyframes loading-spinner {
+  0%   { -webkit-transform: rotate(0deg);   transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@-moz-keyframes loading-spinner {
+  0%   { -moz-transform: rotate(0deg);   transform: rotate(0deg); }
+  100% { -moz-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@-o-keyframes loading-spinner {
+  0%   { -o-transform: rotate(0deg);   transform: rotate(0deg); }
+  100% { -o-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@-ms-keyframes loading-spinner {
+  0%   { -ms-transform: rotate(0deg);   transform: rotate(0deg); }
+  100% { -ms-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes loading-spinner {
+  0%   { transform: rotate(0deg);   transform: rotate(0deg); }
+  100% { transform: rotate(360deg); transform: rotate(360deg); }
+}

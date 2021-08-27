@@ -25,14 +25,13 @@ IPAddress apIP(192, 168, 0, 1);
 IPAddress netMsk(255, 255, 255, 0);
 
 /** Should I connect to WLAN asap? */
-boolean connect;
+QueueHandle_t connectQueue = pdFALSE;
+
+/* http handler */
+HttpHandler httpHandler(&server, myHostname, &apIP, softAP_ssid, connectQueue);
 
 /** Last time I tried to connect to WLAN */
 long lastConnectTry = 0;
-
-HttpHandler httpHandler(&server, myHostname, &apIP, softAP_ssid);
-
-
 
 void initSDCard() {
   if(!SD.begin(SS)) {
@@ -88,6 +87,7 @@ void setupHanlder() {
   
   initSDCard();
 
+  connectQueue = xQueueCreate(1, sizeof(WIFI_CREDENTIAL));
   httpHandler.begin();
 
   Serial.println("HTTP server started");
@@ -97,7 +97,12 @@ void setupHanlder() {
   Serial.print("preferences password: ");
   Serial.println(wifiCredential->password);
   
-  connect = strlen(wifiCredential->ssid) > 0; // Request WLAN connect if there is a SSID
+  byte connect = strlen(wifiCredential->ssid) > 0; // Request WLAN connect if there is a SSID
+  // if(strlen(wifiCredential->ssid) > 0) {
+  //   if (xQueueSend(connectQueue, (void *)wifiCredential, 10) != pdTRUE) {
+  //     Serial.println("connectQueue queue full");
+  //   }
+  // };
   vPortFree(wifiCredential);
 
   Serial.print("Connect: ");
@@ -117,18 +122,19 @@ void setupHanlder() {
   }
 }
 
-void connectWifi() {
+void connectWifi(WIFI_CREDENTIAL *wifiCredential) {
   Serial.println("Connecting as wifi client...");
   WiFi.disconnect();
-  WiFi.begin ( ssid, password );
+  WiFi.begin(wifiCredential->ssid, wifiCredential->password);
   int connRes = WiFi.waitForConnectResult();
   Serial.print("connRes: ");
-  Serial.println ( connRes );
+  Serial.println(connRes);
 }
 
 void handleApRequestTask(void *parameters) {
   /** Current WLAN status */
   wl_status_t oldWifiStatus = WL_IDLE_STATUS;
+  WIFI_CREDENTIAL *wifiCredential;
   while(true) {
     // if (connect) {
     //   Serial.println("Connect requested");
@@ -136,6 +142,16 @@ void handleApRequestTask(void *parameters) {
     //   connectWifi();
     //   lastConnectTry = millis();
     // }
+    // Wait for empty slot in buffer to be available
+    // if (xQueueReceive(connectQueue, (void *)&wifiCredential, 0) == pdTRUE) { // Third param = Non Blocking
+    //   Serial.print("ssid:");
+    //   Serial.println(wifiCredential->ssid);
+    //   Serial.print("password:");
+    //   Serial.println(wifiCredential->password);
+    //   connectWifi(wifiCredential);
+    //   vPortFree(wifiCredential);
+    // }
+
     wl_status_t newWifiStatus = WiFi.status();
 
     // if (s == 0 && millis() > (lastConnectTry + 60000) ) {

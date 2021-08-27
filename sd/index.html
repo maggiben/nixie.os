@@ -1,0 +1,73 @@
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="styles/style.css">
+  <link rel="icon"  type="image/png" href="favicon.png">
+  <title>Nixie OS</title>
+</head>
+<body>
+  <div class="container">
+    <ul id="progressbar">
+      <li class="active">Wifi Configuration</li>
+      <li>Date Time Configuration</li>
+      <li>Alarm Configuration</li>
+    </ul>
+    <form id="wificonfig" action="/wifisave" method="post">
+      <!-- fieldsets -->
+      <fieldset id="wifi-configuration">
+        <legend>Wifi Configuration</legend>
+        <label for="ssid">ssid:</label>
+          <select id="ssid" name="ssid" required></select>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" minlength="8" maxlength="32" required>
+        <input type="checkbox" id="show-password" name="show-password" onclick="showPassword(this);">
+        <label for="show-password">Show Password</label>
+        <div class="buttons">
+          <input type="button" value="Next" name="next" class="button">
+          <input type="button" value="Refresh" class="refresh" onclick="refreshWifi(this);">
+        </div>
+      </fieldset>
+      <fieldset id="date-configuration">
+        <legend>Date Time Configuration</legend>
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date">
+        <label for="time">Time:</label>
+        <input type="time" id="time" name="time" min="00:00" max="24:00" value="13:30">
+        <label for="epoch">Epoch:</label>
+        <input type="text" id="epoch" name="epoch" disabled>
+        <div class="buttons">
+          <div>
+            <input type="button" value="Previous" name="previous" class="button"/>
+            <input type="button" value="Next" name="next" class="button">
+          </div>
+          <input type="button" value="Refresh" class="refresh" onclick="refreshRtc(this);">
+        </div>
+      </fieldset>
+      <fieldset id="alarm-configuration">
+        <legend>Alarm Configuration</legend>
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date">
+        <label for="time">Time:</label>
+        <input type="time" id="time" name="time" min="00:00" max="24:00" value="13:30">
+        <div class="buttons">
+          <div>
+            <input type="button" value="Previous" name="previous" class="button"/>
+            <input type="submit" name="submit" class="button" value="Submit" />
+          </div>
+          <input type="button" value="Refresh" class="refresh" onclick="refreshRtc();">
+        </div>
+      </fieldset>
+      <div id="form-overlay">
+        <section id="loading-spinner">
+          <div class="spin-icon"></div>
+        </section>
+      </div>
+    </form>
+    <footer>
+      <p>This page was built with files from a microSD card.</p>
+      <p>You can remove and edit this file in the SD.</p>
+    </footer>
+  </div>
+  <script type="text/javascript" src="scripts/main.js"></script>
+</body>
+</html>

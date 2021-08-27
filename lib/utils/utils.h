@@ -18,4 +18,4 @@ String getContentType(WebServer *server, String filename);
 /** load wifi credentails from eeprom **/
 WIFI_CREDENTIAL* loadCredentials();
 /** save wifi cretentials to eeprom **/
-WIFI_CREDENTIAL* saveCredentials();
+void saveCredentials();
