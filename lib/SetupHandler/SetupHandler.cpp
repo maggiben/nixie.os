@@ -87,23 +87,27 @@ void setupHanlder() {
   
   initSDCard();
 
-  connectQueue = xQueueCreate(1, sizeof(WIFI_CREDENTIAL));
+  connectQueue = xQueueCreate(1, sizeof(SETTINGS));
   httpHandler.begin();
 
   Serial.println("HTTP server started");
-  WIFI_CREDENTIAL *wifiCredential = loadCredentials();
-  Serial.print("preferences ssid: ");
-  Serial.println(wifiCredential->ssid);
-  Serial.print("preferences password: ");
-  Serial.println(wifiCredential->password);
+  NixieSettings nixieSettings;
+  SETTINGS* settings = nixieSettings.getSettings();
+
+  bool connect = strlen(settings->wifiCredential->ssid) > 0; // Request WLAN connect if there is a SSID
+
+  if(connect) {
+    Serial.print("preferences ssid: ");
+    Serial.println(settings->wifiCredential->ssid);
+    Serial.print("preferences password: ");
+    Serial.println(settings->wifiCredential->password);
+  }
   
-  byte connect = strlen(wifiCredential->ssid) > 0; // Request WLAN connect if there is a SSID
   // if(strlen(wifiCredential->ssid) > 0) {
   //   if (xQueueSend(connectQueue, (void *)wifiCredential, 10) != pdTRUE) {
   //     Serial.println("connectQueue queue full");
   //   }
   // };
-  vPortFree(wifiCredential);
 
   Serial.print("Connect: ");
   Serial.println(connect);
@@ -134,7 +138,7 @@ void connectWifi(WIFI_CREDENTIAL *wifiCredential) {
 void handleApRequestTask(void *parameters) {
   /** Current WLAN status */
   wl_status_t oldWifiStatus = WL_IDLE_STATUS;
-  WIFI_CREDENTIAL *wifiCredential;
+  // WIFI_CREDENTIAL *wifiCredential;
   while(true) {
     // if (connect) {
     //   Serial.println("Connect requested");

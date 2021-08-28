@@ -102,6 +102,15 @@ footer {
   padding: 10px;
 }
 
+#wificonfig input[type="text"]:disabled,
+#wificonfig input[type="password"]:disabled,
+#wificonfig input[type="date"]:disabled,
+#wificonfig input[type="time"]:disabled,
+#wificonfig select:disabled,
+#wificonfig textarea:disabled {
+  background: #eee;
+}
+
 #wificonfig input[type="text"]:hover,
 #wificonfig input[type="password"]:hover,
 #wificonfig input[type="date"]:hover,

@@ -27,9 +27,14 @@ class EventEmitter {
   }
 }
 
+const autoTime = (checkbox) =>{
+  const { checked } = checkbox;
+  const fieldset = document.getElementById('custom-date-time');
+
+};
+
 const showSpinner = (show) => {
   const formOverlay = document.getElementById('form-overlay');
-  console.log(formOverlay);
   formOverlay.style.display = show ? 'block' : 'none';
 };
 
@@ -48,13 +53,11 @@ const checkFormValidity = () => {
 };
 
 const invalidHanlder = (event) => {
-  console.log('invalidInputHanlder', event);
   const { target } = event;
   target.classList.add('field-alert');
 };
 
 const changeHanlder = (event) => {
-  console.log('changeInputHanlder', event);
   const { target } = event;
   if(target.classList.contains('field-alert')) {
     target.classList.remove('field-alert');
@@ -62,7 +65,6 @@ const changeHanlder = (event) => {
 };
 
 const inputHanlder = (event) => {
-  console.log('inputHanlder', event);
   const { target } = event;
   if(target.classList.contains('field-alert')) {
     target.classList.remove('field-alert');
@@ -74,7 +76,6 @@ const setupInputValidations = () => {
   const selects = Array.from(document.querySelectorAll('select'));
 
   [...inputs, ...selects].forEach(element => {
-    console.log('element', element)
     element.addEventListener('invalid', invalidHanlder);
     element.addEventListener('change', changeHanlder);
     element.addEventListener('input', inputHanlder);
@@ -121,14 +122,14 @@ const refreshWifi = () => {
 };
 
 const refreshRtc = (event) => {
-  // return Promise.resolve({
-  //   rtc: new Date().getTime(),
-  // });
+  return Promise.resolve({
+    rtc: Math.round(new Date().getTime() / 1000),
+  });
   // return fetch('/rtc')
-  return fetch('https://gorest.co.in/public/v1/users')
+  return fetch('/rtc')
   .then(response => {
     if (response.status !== 200) {
-      console.log('Looks like there was a problem. Status Code: ' + response.status);
+      console.error('Looks like there was a problem. Status Code: ' + response.status);
       throw new Error(response.status);
     }
     return response.json();
@@ -156,16 +157,16 @@ const wifis = `
 `;
 
 const fetchWifiConfig = () => {
-  // return new Promise(resolve => {
-  //   setTimeout(() => {
-  //     const document = new window.DOMParser().parseFromString(wifis, "text/xml");
-  //     resolve(document);
-  //   }, 1000);
-  // });
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const document = new window.DOMParser().parseFromString(wifis, "text/xml");
+      resolve(document);
+    }, 1000);
+  });
   return fetch('/wifinetworkconfig')
     .then(response => {
       if (response.status !== 200) {
-        console.log('Looks like there was a problem. Status Code: ' + response.status);
+        console.error('Looks like there was a problem. Status Code: ' + response.status);
         throw new Error(response.status);
       }
       return response;
@@ -193,7 +194,7 @@ const next = (event) => {
   const currentFieldSet = element.closest('fieldset');
 	const nextFieldSet = currentFieldSet.nextElementSibling;
   const progressbar = document.querySelector('#progressbar');
-  const fieldsets = Array.prototype.slice.call(document.querySelectorAll('fieldset'));
+  const fieldsets = Array.prototype.slice.call(document.querySelectorAll('#wificonfig > fieldset'));
   const stepIndex = fieldsets.indexOf(nextFieldSet);
   const step = progressbar.getElementsByTagName('li').item(stepIndex);
   step.classList.add('active');
@@ -206,7 +207,7 @@ const previous = (event) => {
   const currentFieldSet = element.closest('fieldset');
 	const previousFieldSet = currentFieldSet.previousElementSibling;
   const progressbar = document.querySelector('#progressbar');
-  const fieldsets = Array.prototype.slice.call(document.querySelectorAll('fieldset'));
+  const fieldsets = Array.prototype.slice.call(document.querySelectorAll('#wificonfig > fieldset'));
   const stepIndex = fieldsets.indexOf(currentFieldSet);
   const step = progressbar.getElementsByTagName('li').item(stepIndex);
   step.classList.remove('active');
@@ -223,7 +224,6 @@ const ready = (event) => {
   });
   /* Attach handler for the previous buttons */
   Array.from(prevButton).forEach(input => {
-    console.log(input);
     input.onclick = previous;
   });
 

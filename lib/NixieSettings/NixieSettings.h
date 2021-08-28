@@ -1,12 +1,12 @@
 /**
- * @file         : CaptiveRequestHandler.h
- * @summary      : Nixie handler based on the 74141 driver
+ * @file         : Settings.h
+ * @summary      : Nixie settings handler
  * @version      : 1.0.0
  * @project      : Nixie Clock
- * @description  : Nixie handler based on the 74141 driver
+ * @description  : Nixie settings handler
  * @author       : Benjamin Maggi
  * @email        : benjaminmaggi@gmail.com
- * @date         : 08 Aug 2021
+ * @date         : 27 Aug 2021
  * @license:     : MIT
  *
  * Copyright 2021 Benjamin Maggi <benjaminmaggi@gmail.com>
@@ -34,26 +34,30 @@
  **/
 
 #pragma once
-#ifndef CAPTIVEREQUESTHANDLER_H
-#define CAPTIVEREQUESTHANDLER_H
-
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <DNSServer.h>
-#include <ESPmDNS.h>
-#include <FS.h>
-#include <SD.h>
-#include <SPI.h>
-#include "HttpHandler.h"
-#include "NixieSettings.h"
+#include <Preferences.h>
 #include "utils.h"
 
-// DNS server
-#define DNS_PORT 53
+struct WIFI_CREDENTIAL {
+  /* Don't set this wifi credentials. They are configurated at runtime and stored on EEPROM */
+  char ssid[32];
+  char password[32];
+};
 
-void setupHanlder();
-void handleApRequestTask(void *parameters);
+struct SETTINGS {
+  bool syncNtpDateTime;
+  char* poolServerName;
+  char* alarm;
+  WIFI_CREDENTIAL* wifiCredential = NULL;
+};
 
-#endif
 
+class NixieSettings {
+  private:
+    Preferences preferences;
+    SETTINGS* settings = NULL;
+  public:
+    NixieSettings();
+    virtual ~NixieSettings();
+    SETTINGS* getSettings();
+    boolean setSettings(SETTINGS* settings);
+};

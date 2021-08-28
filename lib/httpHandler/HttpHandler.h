@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <ArduinoJson.h>
 #include <ESP32Time.h>
+#include "NixieSettings.h"
 #include "utils.h"
 
 class HttpHandler {

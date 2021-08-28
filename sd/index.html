@@ -29,12 +29,18 @@
       </fieldset>
       <fieldset id="date-configuration">
         <legend>Date Time Configuration</legend>
-        <label for="date">Date:</label>
-        <input type="date" id="date" name="date">
-        <label for="time">Time:</label>
-        <input type="time" id="time" name="time" min="00:00" max="24:00" value="13:30">
-        <label for="epoch">Epoch:</label>
-        <input type="text" id="epoch" name="epoch" disabled>
+        <input type="checkbox" id="auto-time" name="auto-time" onclick="autoTime(this);">
+        <label for="auto-time">Set date and time automatically</label>
+        <label for="time-server">Time server:</label>
+        <input type="text" id="time-server" name="time-server" value="time.nist.gov">
+        <fieldset id="custom-date-time">
+          <label for="date">Date:</label>
+          <input type="date" id="date" name="date">
+          <label for="time">Time:</label>
+          <input type="time" id="time" name="time" min="00:00" max="24:00" value="13:30">
+          <label for="epoch">Epoch:</label>
+          <input type="text" id="epoch" name="epoch" disabled>
+        </fieldset>
         <div class="buttons">
           <div>
             <input type="button" value="Previous" name="previous" class="button"/>

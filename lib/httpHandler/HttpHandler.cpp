@@ -166,7 +166,8 @@ void HttpHandler::handleWifi() {
 }
 
 void HttpHandler::getWifiNetworkConfig() {
-  WIFI_CREDENTIAL *wifiCredential = loadCredentials();
+  NixieSettings nixieSettings;
+  SETTINGS* settings = nixieSettings.getSettings();
   this->server->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   this->server->sendHeader("Pragma", "no-cache");
   this->server->sendHeader("Expires", "-1");
@@ -176,7 +177,7 @@ void HttpHandler::getWifiNetworkConfig() {
   if (this->server->client().localIP() == *this->accessPointIp) {
     this->server->sendContent(String("<connection-ssid>") + this->softApSsid + "</connection-ssid>");
   } else {
-    this->server->sendContent(String("<connection-ssid>") + wifiCredential->ssid + "</connection-ssid>");
+    // this->server->sendContent(String("<connection-ssid>") + settings->wifiCredential->ssid + "</connection-ssid>");
   }
   this->server->sendContent(String() + "<ssid>" + String(this->softApSsid) + "</ssid>");
   this->server->sendContent(String() + "<ip>" + toStringIp(WiFi.localIP()) + "</ip>");
