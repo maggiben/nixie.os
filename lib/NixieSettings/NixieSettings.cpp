@@ -25,7 +25,7 @@ NixieSettings::~NixieSettings() {
 
 SETTINGS* NixieSettings::getSettings() {
   this->preferences.begin("NixieSettings", false);
-  this->preferences.getBool("syncNtpDateTime", this->settings->syncNtpDateTime);
+  this->settings->syncNtpDateTime = this->preferences.getBool("syncNtpDateTime", true);
   this->preferences.getString("poolServerName", this->settings->poolServerName, sizeof(char[64]));
   this->preferences.getString("ssid", this->settings->wifiCredential->ssid, sizeof(this->settings->wifiCredential->ssid));
   this->preferences.getString("password", this->settings->wifiCredential->password, sizeof(this->settings->wifiCredential->password));

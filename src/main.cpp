@@ -117,12 +117,12 @@ void setup() {
   // Dumy read to get sensor info
   dht.humidity().getSensor(&sensor);
   // Set delay between sensor readings based on sensor details.
-  const TickType_t dht_sense_interval = sensor.min_delay / 1000 / portTICK_PERIOD_MS;
+  const TickType_t dht_sense_interval = (sensor.min_delay * 2) / 1000 / portTICK_PERIOD_MS;
   printDhtSensorData();
 
   i2c_mutex = xSemaphoreCreateMutex();
   if (i2c_mutex == NULL) {
-    Serial.println(F("Error insufficient heap memory to create i2c_mutex mutex"));
+    Serial.println("Error insufficient heap memory to create i2c_mutex mutex");
   }
 
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
@@ -140,7 +140,7 @@ void setup() {
   if (ntp_sync_timer == NULL) {
     Serial.println("Could not create ntp_sync_timer");
   } else {
-    Serial.println("Starting timers...");
+    Serial.println("Starting timer ntp_sync_timer...");
     // Start timers (max block time if command queue is full)
     xTimerStart(ntp_sync_timer, portMAX_DELAY);
   }
@@ -156,7 +156,7 @@ void setup() {
   if (dht_event_timer == NULL) {
     Serial.println("Could not create dht_event_timer");
   } else {
-    Serial.println("Starting timers dht_event_timer...");
+    Serial.println("Starting timer dht_event_timer...");
     // Start timers (max block time if command queue is full)
     xTimerStart(dht_event_timer, portMAX_DELAY);
   }
@@ -213,19 +213,6 @@ void setup() {
     Serial.println("Test output Task creation failed.");
   }
 
-  // // Start AP Captive Portal and Wifi Setup task
-  // result = xTaskCreatePinnedToCore(handleApRequestTask,
-  //   "AP Captive Portal and Wifi Setup",
-  //   2560,
-  //   NULL,
-  //   2,
-  //   NULL,
-  //   app_cpu);
-
-  // if (result != pdPASS) {
-  //   Serial.println("AP Captive Portal and Wifi Setup Task creation failed.");
-  // }
-
   // Delete "setup and loop" task
   vTaskDelete(NULL);
 }
@@ -258,12 +245,18 @@ void printDhtSensorData() {
 
 void syncNtpDateTimeCallback(TimerHandle_t xTimer) {
   struct DATETIME dateTime;
-  while (WiFi.status() != WL_CONNECTED) {
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    Serial.print( "." );
+  if(WiFi.status() != WL_CONNECTED) {
+    Serial.print( "Wifi not connected, status: ");
+    Serial.println(WiFi.status());
+    return;
   }
-  while (!timeClient.update()) {
-    timeClient.forceUpdate();
+  if(!timeClient.update()) {
+    Serial.println("failed to update npm");
+    bool forced = timeClient.forceUpdate();
+    if(!forced) {
+      Serial.println("failed to force npm update");
+      return;
+    }
   }
   // Variables to save date and time
   dateTime.epochTime = timeClient.getEpochTime();
@@ -358,15 +351,15 @@ void displaySensorInfo(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint1
     display.setTextSize(1);
     display.setTextColor(color);
     
-    // display.setCursor(x, y);
-    // display.print("Temperature: ");
-    // display.print(dhtSensorData->temperature);
-    // display.println("*C");
+    display.setCursor(x, y);
+    display.print("Temperature: ");
+    display.print(dhtSensorData->temperature);
+    display.println("*C");
 
-    // display.setCursor(x, y + 10);
-    // display.print("Humidity: ");
-    // display.print(dhtSensorData->relative_humidity);
-    // display.println("%");
+    display.setCursor(x, y + 10);
+    display.print("Humidity: ");
+    display.print(dhtSensorData->relative_humidity);
+    display.println("%");
     
     display.setCursor(x, y + 20);
     display.print("Date: ");

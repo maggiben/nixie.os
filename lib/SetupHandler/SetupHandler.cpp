@@ -11,8 +11,6 @@ DNSServer dnsServer;
 WebServer server(80);
 
 const char *softAP_ssid = "nixie";
-const char *softAP_password = "12345678";
-
 /* hostname for mDNS. Should work at least on windows. Try http://nixie.local */
 const char *myHostname = "nixie";
 
@@ -65,7 +63,7 @@ void setupHanlder() {
   BaseType_t result = pdFALSE;
   Serial.print("Configuring access point...");
   WiFi.softAPConfig(apIP, apIP, netMsk);
-  WiFi.softAP(softAP_ssid, softAP_password);
+  WiFi.softAP(softAP_ssid);
   vTaskDelay(500 / portTICK_PERIOD_MS);
 
   Serial.print("AP IP address: ");
@@ -87,7 +85,7 @@ void setupHanlder() {
   
   initSDCard();
 
-  connectQueue = xQueueCreate(1, sizeof(SETTINGS));
+  // connectQueue = xQueueCreate(1, sizeof(SETTINGS));
   httpHandler.begin();
 
   Serial.println("HTTP server started");
@@ -198,6 +196,6 @@ void handleApRequestTask(void *parameters) {
     //HTTP
     server.handleClient();
 
-    vTaskDelay(2 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
