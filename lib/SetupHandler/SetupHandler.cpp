@@ -14,10 +14,6 @@ const char *softAP_ssid = "nixie";
 /* hostname for mDNS. Should work at least on windows. Try http://nixie.local */
 const char *myHostname = "nixie";
 
-/* Don't set this wifi credentials. They are configurated at runtime and stored on EEPROM */
-char ssid[32] = "";
-char password[32] = "";
-
 /* Soft AP network parameters */
 IPAddress apIP(192, 168, 0, 1);
 IPAddress netMsk(255, 255, 255, 0);
