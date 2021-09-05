@@ -74,6 +74,19 @@ footer {
   text-transform: uppercase;
   font-size: 75%;
   color: #2C3E50;
+  display: flex;
+}
+
+#wificonfig .label-value {
+  font-weight: bold;
+}
+
+#wificonfig .wifi-props ul {
+  text-transform: uppercase;
+  font-size: 75%;
+  color: #2C3E50;
+  padding: 10px 0px;
+  list-style: none;
 }
 
 /*Hide all except first fieldset*/
@@ -87,6 +100,19 @@ footer {
   min-width: 100%;
   padding: 0;
   width: 100%;
+}
+
+#wificonfig fieldset#password-field {
+  display: none;
+}
+
+#wificonfig .wifi-props {
+  display: none;
+}
+
+#wificonfig input[type="checkbox"] {
+  margin: 0px 5px 5px 0px;
+  padding: 10px;
 }
 
 #wificonfig input[type="text"],

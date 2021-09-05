@@ -33,16 +33,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
  
-#include <FreeRTOS.h>
 #include "main.h"
-
-#include <WiFi.h>
-#include <NTPClient.h>
-// change next line to use with another board/shield
-#include <WiFiUdp.h>
-
-// const char *ssid     = "TP-Link_42B4";
-// const char *password = "pirulo123x";
 
 WiFiUDP ntpUDP;
 
@@ -89,27 +80,12 @@ void setup() {
   mcp.pinMode(2, OUTPUT);
   mcp.pinMode(3, OUTPUT);
 
-
-  // Setup AP captive portal and wifi setup
-  setupHanlder();
-  
-  // WiFi.begin(ssid, password);
-
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   } else {
     display.clearDisplay();
   }
-
-  // Set offset time in seconds to adjust for your timezone, for example:
-  // GMT +1 = 3600
-  // GTM -3 = -10800
-  // GMT +8 = 28800
-  // GMT -1 = -3600
-  // GMT 0 = 0
-  timeClient.setTimeOffset(-10800);
-  timeClient.begin();
   
   // Initialize device.
   dht.begin();
@@ -212,6 +188,18 @@ void setup() {
   if (result != pdPASS) {
     Serial.println("Test output Task creation failed.");
   }
+
+  // Setup AP captive portal and wifi setup
+  setupHanlder();
+
+  // Set offset time in seconds to adjust for your timezone, for example:
+  // GMT +1 = 3600
+  // GTM -3 = -10800
+  // GMT +8 = 28800
+  // GMT -1 = -3600
+  // GMT 0 = 0
+  timeClient.setTimeOffset(-10800);
+  timeClient.begin();
 
   // Delete "setup and loop" task
   vTaskDelete(NULL);

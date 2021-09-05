@@ -177,7 +177,7 @@ void HttpHandler::getWifiNetworkConfig() {
   if (this->server->client().localIP() == *this->accessPointIp) {
     this->server->sendContent(String("<connection-ssid>") + this->softApSsid + "</connection-ssid>");
   } else {
-    // this->server->sendContent(String("<connection-ssid>") + settings->wifiCredential->ssid + "</connection-ssid>");
+    this->server->sendContent(String("<connection-ssid>") + settings->wifiCredential->ssid + "</connection-ssid>");
   }
   this->server->sendContent(String() + "<ssid>" + String(this->softApSsid) + "</ssid>");
   this->server->sendContent(String() + "<ip>" + toStringIp(WiFi.localIP()) + "</ip>");

@@ -34,6 +34,9 @@
  **/
 
 #include <FreeRTOS.h>
+#include <WiFi.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 // Date and time functions using a DS3231 RTC connected via I2C and Wire lib
 #include <RTClib.h>
 RTC_DS3231 rtc;
@@ -87,7 +90,7 @@ void testOutput(void *parameters);
 void nixieTime();
 
 // Settings
-static const TickType_t ntp_sync_delay = 5000 / portTICK_PERIOD_MS;
+static const TickType_t ntp_sync_delay = 1000 / portTICK_PERIOD_MS;
 static const uint8_t ntp_datetime_queue_len = 5;
 // Globals
 static QueueHandle_t ntp_datetime_queue = NULL;

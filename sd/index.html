@@ -17,11 +17,19 @@
       <fieldset id="wifi-configuration">
         <legend>Wifi Configuration</legend>
         <label for="ssid">ssid:</label>
-          <select id="ssid" name="ssid" required></select>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" minlength="8" maxlength="32" required>
-        <input type="checkbox" id="show-password" name="show-password" onclick="showPassword(this);">
-        <label for="show-password">Show Password</label>
+        <select id="ssid" name="ssid" required></select>
+        <div class="wifi-props">
+          <ul>
+            <li>Signal Strenght: <span class="label-value wifi-signal-strength"></span></li>
+            <li>Encryption type: <span class="label-value wifi-signal-encryption"></span></li>
+          </ul>
+        </div>
+        <fieldset id="password-field">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" minlength="8" maxlength="32">
+          <input type="checkbox" id="show-password" name="show-password" onclick="showPassword(this);">
+          <label for="show-password">Show Password</label>
+        </fieldset>
         <div class="buttons">
           <input type="button" value="Next" name="next" class="button">
           <input type="button" value="Refresh" class="refresh" onclick="refreshWifi(this);">
@@ -29,11 +37,12 @@
       </fieldset>
       <fieldset id="date-configuration">
         <legend>Date Time Configuration</legend>
-        <input type="checkbox" id="auto-time" name="auto-time" onclick="autoTime(this);">
-        <label for="auto-time">Set date and time automatically</label>
+        <label for="auto-time">
+          <input type="checkbox" id="auto-time" name="auto-time" onclick="autoTime(this);" checked>Set date and time automatically
+        </label>
         <label for="time-server">Time server:</label>
         <input type="text" id="time-server" name="time-server" value="time.nist.gov">
-        <fieldset id="custom-date-time">
+        <fieldset id="custom-date-time" disabled>
           <label for="date">Date:</label>
           <input type="date" id="date" name="date">
           <label for="time">Time:</label>

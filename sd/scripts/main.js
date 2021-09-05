@@ -1,3 +1,48 @@
+/* Wifi Auth Modes as defined by the firmware */
+const WIFI_AUTH_MODES = {
+  'WIFI_AUTH_OPEN': '0',             /**< authenticate mode : open */
+  'WIFI_AUTH_WEP': '1',              /**< authenticate mode : WEP */
+  'WIFI_AUTH_WPA_PSK': '2',          /**< authenticate mode : WPA_PSK */
+  'WIFI_AUTH_WPA2_PSK': '3',         /**< authenticate mode : WPA2_PSK */
+  'WIFI_AUTH_WPA_WPA2_PSK': '4',     /**< authenticate mode : WPA_WPA2_PSK */
+  'WIFI_AUTH_WPA2_ENTERPRISE': '5',  /**< authenticate mode : WPA2_ENTERPRISE */
+  'WIFI_AUTH_MAX': '6'
+};
+
+const getAuthModeText = (mode) => {
+  return Object.entries(WIFI_AUTH_MODES).filter(([key, value]) => (mode === value)).pop().slice(0, 1).pop();
+};
+
+/*
+SIGNAL STRENGTH	EXPECTED QUALITY	REQUIRED FOR
+-30 dBm	Maximum signal strength, you are probably standing right next to the access point.	
+-50 dBm	Anything down to this level can be considered excellent signal strength.	
+-60 dBm	Good, reliable signal strength.	
+-67 dBm	Reliable signal strength.	The minimum for any service depending on a reliable connection and signal strength, such as voice over Wi-Fi and non-HD video streaming.
+-70 dBm	Not a strong signal.	Light browsing and email.
+-80 dBm	Unreliable signal strength, will not suffice for most services.	Connecting to the network.
+-90 dBm	The chances of even connecting are very low at this level.	
+*/
+
+/* Wifi Signal Strength Ranges */
+const SIGNAL_STRENGTH_TEXT = [
+  [[0, -30], 'Maximum'],
+  [[-31, -50], 'Excellent'],
+  [[-51, -60], 'Good'],
+  [[-61, -67], 'Reliable'],
+  [[-68, -70], 'Not Strong'],
+  [[-71, -80], 'Unreliable'],
+  [[-81, -90], 'Unstable'],
+];
+
+const getStrengthText = (signalStrength) => {
+  /* find if signal is between ranges */
+  return SIGNAL_STRENGTH_TEXT.filter(e => (signalStrength <= e[0][0] && signalStrength >= e[0][1]))
+    .pop()
+    .slice(1)
+    .pop();
+};
+
 /* Very basic EventEmitter class */
 class EventEmitter {
   constructor() {
@@ -29,8 +74,16 @@ class EventEmitter {
 
 const autoTime = (checkbox) =>{
   const { checked } = checkbox;
-  const fieldset = document.getElementById('custom-date-time');
-
+  const timeServerInput = document.getElementById('time-server');
+  const customDateTimefieldset = document.getElementById('custom-date-time');
+  if(checked) {
+    timeServerInput.setAttribute('required', '');
+    customDateTimefieldset.setAttribute('disabled', '');
+  } else {
+    timeServerInput.setAttribute('disabled', '');
+    timeServerInput.removeAttribute('required');
+    customDateTimefieldset.removeAttribute('disabled');
+  }
 };
 
 const showSpinner = (show) => {
@@ -71,6 +124,32 @@ const inputHanlder = (event) => {
   }
 };
 
+const wifiSelect = (network) => {
+  console.log('network', network);
+  const wifiConfigurationFieldset = document.querySelector('fieldset#wifi-configuration');
+  const wifiPropsElement = wifiConfigurationFieldset.querySelector('.wifi-props');
+  const wifiSignalStrengthElement = wifiConfigurationFieldset.querySelector('.wifi-signal-strength');
+  const wifiSignalEncryptionType = wifiConfigurationFieldset.querySelector('.wifi-signal-encryption');
+
+  wifiPropsElement.style.display = 'block';
+  wifiSignalStrengthElement.textContent = getStrengthText(network.rssi);
+  wifiSignalEncryptionType.textContent = getAuthModeText(network.encryptionType);
+  
+  console.log(network.encryptionType, WIFI_AUTH_MODES['WIFI_AUTH_OPEN']);
+  /* If wifi requires credentials then show the password input */
+  if(network.encryptionType !== WIFI_AUTH_MODES['WIFI_AUTH_OPEN']) {
+    const password = document.getElementById('password');
+    const passwordField = document.querySelector('#password-field');
+    password.setAttribute('required', '');
+    passwordField.style.display = 'block';
+  } else {
+    const password = document.getElementById('password');
+    const passwordField = document.querySelector('#password-field');
+    password.removeAttribute('required');
+    passwordField.style.display = 'none';
+  }
+}
+
 const setupInputValidations = () => {
   const inputs = Array.from(document.querySelectorAll('input')).filter(input => input.getAttribute('type') !== 'button');
   const selects = Array.from(document.querySelectorAll('select'));
@@ -82,19 +161,28 @@ const setupInputValidations = () => {
   });
 }
 
-const setWifiOptions = (options) => {
+
+const ssidChange = (networks) => {
+  return (event) => {
+    const { selectedIndex } = event.target;
+    wifiSelect(networks[selectedIndex]);
+  }
+}
+
+const setWifiOptions = (networks) => {
   /* get dropdown element */
-  const select = document.querySelector('#wifi-configuration #ssid');
+  const select = document.getElementById('ssid');
   /* get options and remove them */
   select.querySelectorAll('option').forEach(option => option.remove());
   /* add new options */
-  options.forEach((option, index) => {
+  networks.forEach((option, index) => {
     select.add(new Option(option.ssid, option.index));
   });
+  select.onchange = ssidChange(networks);
 }
 
-const mapNetworks = (wifiConfig) => {
-  return Array.from(wifiConfig.querySelector('networks').children)
+const mapNetworks = (networks) => {
+  return Array.from(networks.querySelector('networks').children)
     .map(network => {
       const ssid = network.querySelector('ssid').textContent;
       const encryptionType = network.querySelector('encryption-type').textContent;
@@ -110,8 +198,8 @@ const mapNetworks = (wifiConfig) => {
 const refreshWifi = () => {
   showSpinner(true);
   fetchWifiConfig()
-    .then(wifiConfig => {
-      const networks = mapNetworks(wifiConfig);
+    .then(data => mapNetworks(data))
+    .then(networks => {
       setWifiOptions(networks);
       showSpinner(false);
     })
@@ -145,7 +233,12 @@ const wifis = `
     <network>
       <ssid>My Wifi</ssid>
       <encryption-type>4</encryption-type>
-      <rssi>-77</rssi>
+      <rssi>-54</rssi>
+    </network>
+    <network>
+      <ssid>My Open Wifi</ssid>
+      <encryption-type>0</encryption-type>
+      <rssi>-88</rssi>
     </network>
     <network>
       <ssid>My Second Wifi</ssid>
@@ -190,6 +283,7 @@ const next = (event) => {
   if(!isFormValid) {
     return;
   }
+  console.log('next');
   const element = event.target;
   const currentFieldSet = element.closest('fieldset');
 	const nextFieldSet = currentFieldSet.nextElementSibling;
