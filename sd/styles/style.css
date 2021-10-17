@@ -33,6 +33,9 @@ body {
 }
 
 footer {
+  font-size: 75%;
+  text-transform: uppercase;
+  text-align: center;
   margin-top: 20px;
 }
 
@@ -90,8 +93,8 @@ footer {
 }
 
 /*Hide all except first fieldset*/
-#wificonfig fieldset:not(:first-of-type) {
-	display: none;
+#wificonfig > fieldset:not(:first-of-type) {
+  display: none;
 }
 
 #wificonfig fieldset {
@@ -284,13 +287,20 @@ input[type="checkbox"] {
 }
 #progressbar li:first-child:after {
 	/*connector not needed before the first step*/
-	content: none; 
+	content: none;
 }
 /*marking active/completed steps green*/
 /*The number of the step and the connector before it = green*/
 #progressbar li.active:before,  #progressbar li.active:after{
-	background: #27AE60;
-	color: white;
+  background: #27AE60;
+  color: white;
+}
+
+.clock {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  background-color: black;
 }
 
 #loading-spinner {

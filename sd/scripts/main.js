@@ -15,13 +15,13 @@ const getAuthModeText = (mode) => {
 
 /*
 SIGNAL STRENGTH	EXPECTED QUALITY	REQUIRED FOR
--30 dBm	Maximum signal strength, you are probably standing right next to the access point.	
--50 dBm	Anything down to this level can be considered excellent signal strength.	
--60 dBm	Good, reliable signal strength.	
+-30 dBm	Maximum signal strength, you are probably standing right next to the access point.
+-50 dBm	Anything down to this level can be considered excellent signal strength.
+-60 dBm	Good, reliable signal strength.
 -67 dBm	Reliable signal strength.	The minimum for any service depending on a reliable connection and signal strength, such as voice over Wi-Fi and non-HD video streaming.
 -70 dBm	Not a strong signal.	Light browsing and email.
 -80 dBm	Unreliable signal strength, will not suffice for most services.	Connecting to the network.
--90 dBm	The chances of even connecting are very low at this level.	
+-90 dBm	The chances of even connecting are very low at this level.
 */
 
 /* Wifi Signal Strength Ranges */
@@ -72,17 +72,23 @@ class EventEmitter {
   }
 }
 
+/* sets NTP time sync */
 const autoTime = (checkbox) =>{
   const { checked } = checkbox;
+  console.log(checkbox)
   const timeServerInput = document.getElementById('time-server');
   const customDateTimefieldset = document.getElementById('custom-date-time');
+  const autoDateTimefieldset = document.getElementById('auto-date-time');
   if(checked) {
+    timeServerInput.removeAttribute('disabled');
     timeServerInput.setAttribute('required', '');
     customDateTimefieldset.setAttribute('disabled', '');
+    autoDateTimefieldset.removeAttribute('disabled');
   } else {
     timeServerInput.setAttribute('disabled', '');
     timeServerInput.removeAttribute('required');
     customDateTimefieldset.removeAttribute('disabled');
+    autoDateTimefieldset.setAttribute('disabled', '');
   }
 };
 
@@ -134,7 +140,7 @@ const wifiSelect = (network) => {
   wifiPropsElement.style.display = 'block';
   wifiSignalStrengthElement.textContent = getStrengthText(network.rssi);
   wifiSignalEncryptionType.textContent = getAuthModeText(network.encryptionType);
-  
+
   console.log(network.encryptionType, WIFI_AUTH_MODES['WIFI_AUTH_OPEN']);
   /* If wifi requires credentials then show the password input */
   if(network.encryptionType !== WIFI_AUTH_MODES['WIFI_AUTH_OPEN']) {
@@ -178,6 +184,7 @@ const setWifiOptions = (networks) => {
   networks.forEach((option, index) => {
     select.add(new Option(option.ssid, option.index));
   });
+  wifiSelect(networks[0]);
   select.onchange = ssidChange(networks);
 }
 
@@ -232,7 +239,7 @@ const wifis = `
   <networks>
     <network>
       <ssid>My Wifi</ssid>
-      <encryption-type>4</encryption-type>
+      <encryption-type>0</encryption-type>
       <rssi>-54</rssi>
     </network>
     <network>
@@ -274,6 +281,61 @@ const rtcUpdate = () => {
     refreshRtc().then(({ rtc }) => {
       const epoch = document.getElementById('epoch');
       epoch.value = rtc;
+    });
+  }, 1000);
+}
+
+class Sprite {
+  constructor(context, width, height, positions) {
+    this.context = context;
+    this.width = width;
+    this.height = height;
+    this.positions = positions;
+    this.img = new Image();
+    this.img.src = 'images/numbers.jpg';
+  }
+  draw(position, x, y) {
+    const pos = this.positions[position];
+    this.context.drawImage(
+      this.img,
+      pos[0],
+      pos[1],
+      this.width,
+      this.height,
+      x, y,
+      this.width,
+      this.height
+    );
+  }
+}
+
+const drawClock = () => {
+  const canvas = document.getElementById('clock');
+  const context = canvas.getContext('2d');
+  const sprite = new Sprite(context, 40, 60, [
+    [15, 120],
+    [52, 120],
+    [89, 120],
+    [125, 120],
+    [162, 120],
+    [198, 120],
+    [234, 120],
+    [272, 120],
+    [308, 120],
+    [344, 120]
+  ]);
+  setInterval(() => {
+    const time = new Date();
+    const seconds = time.getSeconds().toString().padStart(2, '0').split('').map(x => parseInt(x, 10));
+    const minutes = time.getMinutes().toString().padStart(2, '0').split('').map(x => parseInt(x, 10));
+    const hours = time.getHours().toString().padStart(2, '0').split('').map(x => parseInt(x, 10));
+    refreshRtc().then(({ rtc }) => {
+      let spacing = 0;
+      [...hours, ...minutes, ...seconds].forEach((number, index) => { //
+        const isPair = Boolean(index > 0 && index % 2);
+        sprite.draw(number, (index * 40) + spacing, 0);
+        spacing += isPair ? 15 : 0;
+      });
     });
   }, 1000);
 }
@@ -324,6 +386,7 @@ const ready = (event) => {
   setupInputValidations();
   refreshWifi();
   rtcUpdate();
+  drawClock();
 };
 
 /* main */
