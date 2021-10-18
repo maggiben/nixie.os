@@ -79,6 +79,13 @@ void setup() {
   mcp.pinMode(1, OUTPUT);
   mcp.pinMode(2, OUTPUT);
   mcp.pinMode(3, OUTPUT);
+  // anodes drivers
+  mcp.pinMode(8, OUTPUT);
+  mcp.pinMode(9, OUTPUT);
+  mcp.pinMode(10, OUTPUT);
+  mcp.pinMode(11, OUTPUT);
+  mcp.pinMode(12, OUTPUT);
+  mcp.pinMode(13, OUTPUT);
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -122,46 +129,46 @@ void setup() {
   }
 
   // Create DHT sesor sync timer
-  dht_event_timer = xTimerCreate(
-    "Read DHT Sensor",            // Name of timer
-    dht_sense_interval,           // Set delay between sensor readings based on sensor details.
-    pdTRUE,                       // Auto-reload
-    (void *)1,                    // Timer ID
-    syncDhtSensorCallback);       // Callback function
+  // dht_event_timer = xTimerCreate(
+  //   "Read DHT Sensor",            // Name of timer
+  //   dht_sense_interval,           // Set delay between sensor readings based on sensor details.
+  //   pdTRUE,                       // Auto-reload
+  //   (void *)1,                    // Timer ID
+  //   syncDhtSensorCallback);       // Callback function
 
-  if (dht_event_timer == NULL) {
-    Serial.println("Could not create dht_event_timer");
-  } else {
-    Serial.println("Starting timer dht_event_timer...");
-    // Start timers (max block time if command queue is full)
-    xTimerStart(dht_event_timer, portMAX_DELAY);
-  }
+  // if (dht_event_timer == NULL) {
+  //   Serial.println("Could not create dht_event_timer");
+  // } else {
+  //   Serial.println("Starting timer dht_event_timer...");
+  //   // Start timers (max block time if command queue is full)
+  //   xTimerStart(dht_event_timer, portMAX_DELAY);
+  // }
 
-  // Start printMessages task
-  result = xTaskCreatePinnedToCore(printMessages,
-    "Serial Print Service",
-    1024,
-    NULL,
-    1,
-    NULL,
-    app_cpu);
+  // // Start printMessages task
+  // result = xTaskCreatePinnedToCore(printMessages,
+  //   "Serial Print Service",
+  //   1024,
+  //   NULL,
+  //   1,
+  //   NULL,
+  //   app_cpu);
   
-  if (result != pdPASS) {
-    Serial.println("Serial Print Service Task creation failed.");
-  }
+  // if (result != pdPASS) {
+  //   Serial.println("Serial Print Service Task creation failed.");
+  // }
 
-    // Start printMessages task
-  result = xTaskCreatePinnedToCore(displayMessages,
-    "Display Print Service",
-    1024,
-    NULL,
-    tskIDLE_PRIORITY,
-    NULL,
-    app_cpu);
+  //   // Start printMessages task
+  // result = xTaskCreatePinnedToCore(displayMessages,
+  //   "Display Print Service",
+  //   1024,
+  //   NULL,
+  //   tskIDLE_PRIORITY,
+  //   NULL,
+  //   app_cpu);
   
-  if (result != pdPASS) {
-    Serial.println("Display Print Service Task creation failed.");
-  }
+  // if (result != pdPASS) {
+  //   Serial.println("Display Print Service Task creation failed.");
+  // }
 
   // Start RTC Synctonization with NTP task
   result = xTaskCreatePinnedToCore(syncRtckWithNtp,
@@ -377,7 +384,7 @@ void loop() {
 void nixieTime() {
   uint8_t numbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   for(uint8_t i = 0; i < (sizeof(numbers) / sizeof(numbers[0])); i++) {
-    int number = numbers[i];
+    uint8_t number = numbers[i];
     uint16_t output = number << 0;
     if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) { 
       mcp.writeGPIOAB(output);
@@ -387,8 +394,77 @@ void nixieTime() {
   }
 }
 
+void multiplex2() {
+  // uint8_t anodes[] = {8, 9, 10, 11, 12, 13};
+  uint8_t anodes[] = {1, 2, 4, 6, 16, 32};
+  uint8_t anode;
+  uint16_t output;
+  for(uint8_t i = 0; i < (sizeof(anodes) / sizeof(anodes[0])); i++) {
+    anode = anodes[i];
+    output = 5 << 0;
+    output = anode >> 8;
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) { 
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(250 / portTICK_PERIOD_MS);
+  }
+}
+
+void multiplex_OK() {
+  // uint8_t anodes[] = {8, 9, 10, 11, 12, 13};
+  uint8_t anodes[] = {1, 2, 4, 8, 16, 32};
+  for(uint8_t i = 0; i < (sizeof(anodes) / sizeof(anodes[0])); i++) {
+    uint8_t anode = anodes[i];
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+      uint8_t number = random(9);
+      uint16_t output = (anode << 8) | (number << 0);
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+  }
+}
+
+// void reverse(char* str, int len) {
+//   for(int i=0; i<len/2; i++) {
+//     char temp=str[i];
+//     str[i]=str[len-i-1];
+//     str[len-i-1]=temp;
+//   }
+// }
+
+void multiplex() {
+  uint8_t anodes[] = {1, 2, 4, 8, 16, 32};
+  char time[6] = { 0, 0, 0, 0, 0, 0 };
+  sprintf(&time[0], "%02d", esp32Time.getHour());
+  sprintf(&time[2], "%02d", esp32Time.getMinute());
+  sprintf(&time[4], "%02d", esp32Time.getSecond());
+  // reverse string
+  for(int i = 0; i < sizeof(time) / 2; i++) {
+    char temp = time[i];
+    time[i] = time[sizeof(time) - i - 1];
+    time[sizeof(time) - i - 1] = temp;
+  }
+  // loop though anodes
+  for(uint8_t i = 0; i < sizeof(anodes); i++) {
+    uint8_t anode = anodes[i];
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+      // get current digit
+      char digit[2] = { time[i], '\0' };
+      uint8_t number = atoi(digit);
+      // join port A & port B in a single 16 bit number
+      uint16_t output = (anode << 8) | (number << 0);
+      mcp.writeGPIOAB(0);
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(3 / portTICK_PERIOD_MS);
+  }
+}
+
 void testOutput(void *parameters) {
   while(true) {
-    nixieTime();
+    multiplex();
   }
 }
