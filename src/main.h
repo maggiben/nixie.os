@@ -37,57 +37,29 @@
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 // Date and time functions using a DS3231 RTC connected via I2C and Wire lib
 #include <RTClib.h>
 RTC_DS3231 rtc;
-
-#include <DHT.h>
-#include <DHT_U.h>
-#define DHTPIN 25       // modify to the pin we connected
-#define DHTTYPE DHT21   // AM2301 
-DHT_Unified dht(DHTPIN, DHTTYPE);
 
 #include <Adafruit_MCP23017.h>
 Adafruit_MCP23017 mcp;
 
 #include <ESP32Time.h>
-
 ESP32Time esp32Time;
-// Use only core
-#if CONFIG_FREERTOS_UNICORE
-  static const BaseType_t app_cpu = 0;
-#else
-  static const BaseType_t app_cpu = 1;
-#endif
-
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-
-struct DHTSENSORDATA {
-  float temperature;        // temperature is in degrees centigrade (Celsius)
-  float relative_humidity;  // relative humidity in percent
-  long timestamp;           // measurment timestamp
-};
 
 #include "DateTime.h"
 #include "SetupHandler.h"
+#include "Nixie.h"
+Nixie nixie;
 
 // Functions
-void printDhtSensorData();
 void syncNtpDateTimeCallback(TimerHandle_t xTimer);
-void syncDhtSensorCallback(TimerHandle_t xTimer);
 void syncRtckWithNtp(void *parameters);
 void printMessages(void *parameters);
-void displaySensorInfo(DHTSENSORDATA *dhtSensorData, int16_t x, int16_t y, uint16_t color);
-void displayMessages(void *parameters);
 void setEsp32Time();
-void testOutput(void *parameters);
-void nixieTime();
+void nixieTask(void *parameters);
 
 // Settings
 static const TickType_t ntp_sync_delay = 1000 / portTICK_PERIOD_MS;
@@ -102,11 +74,13 @@ struct DATETIME {
   unsigned long epochTime;
 };
 
-// Settings
-static const uint8_t dht_queue_len = 5;
-// Globals
-static QueueHandle_t dht_queue = NULL;
-static TimerHandle_t dht_event_timer = NULL;
-static SemaphoreHandle_t i2c_mutex;
+// Semaphores
+static SemaphoreHandle_t i2c_mutex = NULL;
 
+// Use only core
+#if CONFIG_FREERTOS_UNICORE
+  static const BaseType_t app_cpu = 0;
+#else
+  static const BaseType_t app_cpu = 1;
+#endif
 

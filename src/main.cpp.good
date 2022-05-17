@@ -46,57 +46,55 @@ void setup() {
     Serial.println("Error insufficient heap memory to create i2c_mutex mutex");
   }
 
-  nixie.setup(i2c_mutex);
-
   ntp_datetime_queue = xQueueCreate(ntp_datetime_queue_len, sizeof(DATETIME));
 
   // Create a one-shot timer
-  // ntp_sync_timer = xTimerCreate(
-  //   "Sync NTP Date Time",       // Name of timer
-  //   ntp_sync_delay,             // Period of timer (in ticks)
-  //   pdTRUE,                     // Auto-reload
-  //   (void *)0,                  // Timer ID
-  //   syncNtpDateTimeCallback);   // Callback function
+  ntp_sync_timer = xTimerCreate(
+    "Sync NTP Date Time",       // Name of timer
+    ntp_sync_delay,             // Period of timer (in ticks)
+    pdTRUE,                     // Auto-reload
+    (void *)0,                  // Timer ID
+    syncNtpDateTimeCallback);   // Callback function
   
-  // // Check to make sure timers were created
-  // if (ntp_sync_timer == NULL) {
-  //   Serial.println("Could not create ntp_sync_timer");
-  // } else {
-  //   Serial.println("Starting timer ntp_sync_timer...");
-  //   // Start timers (max block time if command queue is full)
-  //   xTimerStart(ntp_sync_timer, portMAX_DELAY);
-  // }
+  // Check to make sure timers were created
+  if (ntp_sync_timer == NULL) {
+    Serial.println("Could not create ntp_sync_timer");
+  } else {
+    Serial.println("Starting timer ntp_sync_timer...");
+    // Start timers (max block time if command queue is full)
+    xTimerStart(ntp_sync_timer, portMAX_DELAY);
+  }
 
   // Start printMessages task
-  // result = xTaskCreatePinnedToCore(printMessages,
-  //   "Serial Print Service",
-  //   1024,
-  //   NULL,
-  //   1,
-  //   NULL,
-  //   app_cpu);
+  result = xTaskCreatePinnedToCore(printMessages,
+    "Serial Print Service",
+    1024,
+    NULL,
+    1,
+    NULL,
+    app_cpu);
   
-  // if (result != pdPASS) {
-  //   Serial.println("Serial Print Service Task creation failed.");
-  // }
+  if (result != pdPASS) {
+    Serial.println("Serial Print Service Task creation failed.");
+  }
 
 
   // Start RTC Synctonization with NTP task
-  // result = xTaskCreatePinnedToCore(syncRtckWithNtp,
-  //   "RTC Synctonization with NTP",
-  //   1664,
-  //   NULL,
-  //   tskIDLE_PRIORITY,
-  //   NULL,
-  //   app_cpu);
+  result = xTaskCreatePinnedToCore(syncRtckWithNtp,
+    "RTC Synctonization with NTP",
+    1664,
+    NULL,
+    tskIDLE_PRIORITY,
+    NULL,
+    app_cpu);
 
-  // if (result != pdPASS) {
-  //   Serial.println("RTC Synctonization with NTP Task creation failed.");
-  // }
+  if (result != pdPASS) {
+    Serial.println("RTC Synctonization with NTP Task creation failed.");
+  }
 
   // Start RTC Synctonization with NTP task
-  result = xTaskCreatePinnedToCore(nixieTask,
-    "Nixie Task",
+  result = xTaskCreatePinnedToCore(testOutput,
+    "Test Output",
     1664,
     NULL,
     1,
@@ -104,7 +102,7 @@ void setup() {
     app_cpu);
 
   if (result != pdPASS) {
-    Serial.println("Nixie task creation failed.");
+    Serial.println("Test output Task creation failed.");
   }
 
   // Setup AP captive portal and wifi setup
@@ -178,12 +176,109 @@ void syncRtckWithNtp(void *parameters) {
   }
 }
 
+void setEsp32Time() {
+  // Get battery backup rtc
+  DateTime now = rtc.now();
+  // Adjust internal rtc
+  esp32Time.setTime(now.unixtime());
+}
+
+// Task: wait for item on queue and print it
+void printMessages(void *parameters) {
+  while (true) {
+    Serial.println(esp32Time.getDateTime(true));
+    // Print out number of free heap memory bytes before malloc
+    // Serial.print("Heap size (bytes): ");
+    // Serial.println(xPortGetFreeHeapSize());
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
 void loop() {
   // Do nothing but allow yielding to lower-priority tasks
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
-void nixieTask(void *parameters) {
+void multiplex_OK() {
+  uint8_t anodes[] = {1, 2, 4, 8, 16, 32};
+  for(uint8_t i = 0; i < (sizeof(anodes) / sizeof(anodes[0])); i++) {
+    uint8_t anode = anodes[i];
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+      uint8_t number = random(9);
+      uint16_t output = (anode << 8) | (number << 0);
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+  }
+}
+
+void screenSaver(uint8_t number) {
+  uint8_t anodes[] = {1, 2, 4, 8, 16, 32};
+  for(uint8_t i = 0; i < sizeof(anodes); i++) {
+    uint8_t anode = anodes[i];
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+      uint16_t output = (anode << 8) | (number << 0);
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(3 / portTICK_PERIOD_MS);
+  }
+}
+
+void screenSaverRandom() {
+  int epoch = esp32Time.getEpoch();
+  bool expired = false;
+  while(!expired) {
+    uint8_t number = random(9);
+    screenSaver(number);
+    expired = esp32Time.getEpoch() > epoch + 5 ? true : false;
+  }
+}
+
+void screenSaverSlot() {
+  for(uint8_t number = 0; number <= 9; number++) {
+    bool expired = false;
+    int epoch = esp32Time.getEpoch();
+    while(!expired) {
+      screenSaver(number);
+      expired = esp32Time.getEpoch() > epoch + 2 ? true : false;
+    }
+  }
+}
+
+void nixieTime() {
+  uint8_t anodes[] = {1, 2, 4, 8, 16, 32};
+  char time[6] = { 0, 0, 0, 0, 0, 0 };
+  sprintf(&time[0], "%02d", esp32Time.getHour());
+  sprintf(&time[2], "%02d", esp32Time.getMinute());
+  sprintf(&time[4], "%02d", esp32Time.getSecond());
+  // reverse string
+  for(uint8_t i = 0; i < sizeof(time) / 2; i++) {
+    char temp = time[i];
+    time[i] = time[sizeof(time) - i - 1];
+    time[sizeof(time) - i - 1] = temp;
+  }
+  // loop though anodes
+  for(uint8_t i = 0; i < sizeof(anodes); i++) {
+    uint8_t anode = anodes[i];
+    if (xSemaphoreTake(i2c_mutex, portMAX_DELAY) == pdTRUE) {
+      // get current digit
+      char digit[2] = { time[i], '\0' };
+      uint8_t number = atoi(digit);
+      // join port A & port B in a single 16 bit number
+      uint16_t output = (anode << 8) | (number << 0);
+      // blank all
+      mcp.writeGPIOAB(0);
+      // light up the nixie [anode]-[number]
+      mcp.writeGPIOAB(output);
+      xSemaphoreGive(i2c_mutex);
+    }
+    vTaskDelay(3 / portTICK_PERIOD_MS);
+  }
+}
+
+void testOutput(void *parameters) {
   while(true) {
     nixie.nixieTask();
   }

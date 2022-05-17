@@ -1,13 +1,13 @@
 
 /**
  * @file         : Nixie.h
- * @summary      : Nixie handler based on the 74141 driver
- * @version      : 1.0.0
+ * @summary      : Nixie handler based on the 74141 driver and the MCP23017 i/o expander
+ * @version      : 1.0.1
  * @project      : Nixie Clock
- * @description  : Nixie handler based on the 74141 driver
+ * @description  : Nixie handler based on the 74141 driver and the MCP23017 i/o expander
  * @author       : Benjamin Maggi
  * @email        : benjaminmaggi@gmail.com
- * @date         : 08 Aug 2021
+ * @date         : 18 Oct 2021
  * @license:     : MIT
  *
  * Copyright 2021 Benjamin Maggi <benjaminmaggi@gmail.com>
@@ -35,17 +35,24 @@
  **/
 
 #pragma once
+#include <Adafruit_MCP23017.h>
+#include <ESP32Time.h>
+#include <RTClib.h>
 #include "Arduino.h"
-#include <Udp.h>
-
-#define SEVENZYYEARS 2208988800UL
-#define NTP_PACKET_SIZE 48
-#define NTP_DEFAULT_LOCAL_PORT 1337
 
 class Nixie {
   private:
-    unsigned long epoch;      // In s
-
+    long screenSaverInterval = 600; // time in seconds between anti anode poisoning routine
+    Adafruit_MCP23017 mcp;
+    RTC_DS3231 rtc;
+    ESP32Time esp32Time;
+    SemaphoreHandle_t i2cMutex;
+    void screenSaver(uint8_t number);
+    void screenSaverRandom();
+    void screenSaverSlot();
+    void nixieTime();
   public:
-    Nixie(unsigned long epoch);
+    Nixie() {};
+    void setup(SemaphoreHandle_t i2cMutex);
+    void nixieTask();
 };
